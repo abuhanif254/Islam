@@ -32,6 +32,7 @@ import { INITIAL_ARTICLES } from '@/data/articles';
 import { IslamicGeometricEmblem } from './IslamicGeometricEmblem';
 import SectionHeroBanner from './SectionHeroBanner';
 import MegaDirectoryModal from './MegaDirectoryModal';
+import PrayerTimesAndHijriWidget from './PrayerTimesAndHijriWidget';
 
 export interface IslamPortalProps {
   initialSectionSlug?: string;
@@ -607,6 +608,9 @@ export default function IslamPortal({
           </div>
         </div>
       </div>
+
+      {/* PRAYER TIMES & HIJRI CALENDAR WIDGET */}
+      <PrayerTimesAndHijriWidget themeMode={themeMode} />
 
       {/* 2. EDITORIAL MASTHEAD HEADER WITH "ইসলাম" & GEOMETRIC VISUALIZATION */}
       <header className={`${themeClasses.bgSurface} border-b-2 ${themeClasses.borderStrong}`}>

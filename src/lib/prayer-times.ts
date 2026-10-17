@@ -1,0 +1,428 @@
+// ============================================================================
+// সালাতের সময়সূচি (Islamic Prayer Times Engine)
+// Standardized on Islamic Foundation Bangladesh / Karachi Methodology
+// ============================================================================
+
+export interface CityOffset {
+  name: string;
+  nameBn: string;
+  fajrOffset: number; // minutes from Dhaka
+  sunriseOffset: number;
+  dhuhrOffset: number;
+  asrOffset: number;
+  maghribOffset: number;
+  ishaOffset: number;
+}
+
+export const BANGLADESH_CITIES: Record<string, CityOffset> = {
+  dhaka: {
+    name: 'Dhaka',
+    nameBn: 'ঢাকা',
+    fajrOffset: 0,
+    sunriseOffset: 0,
+    dhuhrOffset: 0,
+    asrOffset: 0,
+    maghribOffset: 0,
+    ishaOffset: 0,
+  },
+  chittagong: {
+    name: 'Chittagong',
+    nameBn: 'চট্টগ্রাম',
+    fajrOffset: -5,
+    sunriseOffset: -5,
+    dhuhrOffset: -5,
+    asrOffset: -5,
+    maghribOffset: -5,
+    ishaOffset: -5,
+  },
+  sylhet: {
+    name: 'Sylhet',
+    nameBn: 'সিলেট',
+    fajrOffset: -6,
+    sunriseOffset: -6,
+    dhuhrOffset: -6,
+    asrOffset: -6,
+    maghribOffset: -6,
+    ishaOffset: -6,
+  },
+  rajshahi: {
+    name: 'Rajshahi',
+    nameBn: 'রাজশাহী',
+    fajrOffset: 7,
+    sunriseOffset: 7,
+    dhuhrOffset: 7,
+    asrOffset: 7,
+    maghribOffset: 7,
+    ishaOffset: 7,
+  },
+  khulna: {
+    name: 'Khulna',
+    nameBn: 'খুলনা',
+    fajrOffset: 4,
+    sunriseOffset: 4,
+    dhuhrOffset: 4,
+    asrOffset: 4,
+    maghribOffset: 4,
+    ishaOffset: 4,
+  },
+  barisal: {
+    name: 'Barisal',
+    nameBn: 'বরিশাল',
+    fajrOffset: 1,
+    sunriseOffset: 1,
+    dhuhrOffset: 1,
+    asrOffset: 1,
+    maghribOffset: 1,
+    ishaOffset: 1,
+  },
+  rangpur: {
+    name: 'Rangpur',
+    nameBn: 'রংপুর',
+    fajrOffset: 6,
+    sunriseOffset: 6,
+    dhuhrOffset: 6,
+    asrOffset: 6,
+    maghribOffset: 6,
+    ishaOffset: 6,
+  },
+  mymensingh: {
+    name: 'Mymensingh',
+    nameBn: 'ময়মনসিংহ',
+    fajrOffset: 0,
+    sunriseOffset: 0,
+    dhuhrOffset: 0,
+    asrOffset: 0,
+    maghribOffset: 0,
+    ishaOffset: 0,
+  },
+};
+
+export interface PrayerTimeItem {
+  id: 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
+  name: string;
+  nameArabic: string;
+  time: string; // e.g. "04:48 AM"
+  timeBn: string; // e.g. "০৪:৪৮ ভোর"
+  dateObj: Date;
+  isNext?: boolean;
+  isCurrent?: boolean;
+}
+
+export interface DayPrayerSchedule {
+  city: CityOffset;
+  dateStr: string;
+  fajr: string;
+  sahriEnds: string;
+  sunrise: string;
+  ishraq: string;
+  dhuhr: string;
+  asrHanafi: string;
+  asrShafii: string;
+  maghrib: string; // Iftar time
+  iftar: string;
+  isha: string;
+  tahajjudEnd: string;
+  currentWaqt: PrayerTimeItem | null;
+  nextWaqt: PrayerTimeItem | null;
+  remainingTime: string; // e.g. "১ ঘণ্টা ৩৫ মিনিট"
+  timesList: PrayerTimeItem[];
+}
+
+// Convert numbers to Bengali digits
+export function toBengaliDigits(num: number | string): string {
+  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return String(num).replace(/\d/g, d => bnDigits[Number(d)]);
+}
+
+// Format 24h into 12h Bengali time string
+export function formatTimeBn(date: Date): string {
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period =
+    hours >= 4 && hours < 6
+      ? 'ভোর'
+      : hours >= 6 && hours < 12
+      ? 'সকাল'
+      : hours >= 12 && hours < 15
+      ? 'দুপুর'
+      : hours >= 15 && hours < 18
+      ? 'বিকাল'
+      : hours >= 18 && hours < 20
+      ? 'সন্ধ্যা'
+      : 'রাত';
+
+  hours = hours % 12 || 12;
+  const hStr = toBengaliDigits(hours < 10 ? '0' + hours : hours);
+  const mStr = toBengaliDigits(minutes < 10 ? '0' + minutes : minutes);
+  return `${hStr}:${mStr} ${period}`;
+}
+
+export function formatTimeEn(date: Date): string {
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  const hStr = hours < 10 ? '0' + hours : hours;
+  const mStr = minutes < 10 ? '0' + minutes : minutes;
+  return `${hStr}:${mStr} ${ampm}`;
+}
+
+// Astronomical calculation of Solar Declination and Equation of Time
+function getSolarCoordinates(julianDay: number) {
+  const d = julianDay - 2451545.0;
+  const g = (357.529 + 0.98560028 * d) % 360;
+  const q = (280.459 + 0.98564736 * d) % 360;
+  const L = (q + 1.915 * Math.sin((g * Math.PI) / 180) + 0.02 * Math.sin((2 * g * Math.PI) / 180)) % 360;
+  const e = 23.439 - 0.00000036 * d;
+
+  const sinL = Math.sin((L * Math.PI) / 180);
+  const cosL = Math.cos((L * Math.PI) / 180);
+  const sinE = Math.sin((e * Math.PI) / 180);
+  const cosE = Math.cos((e * Math.PI) / 180);
+
+  const declination = (Math.asin(sinL * sinE) * 180) / Math.PI;
+  const ra = (Math.atan2(cosE * sinL, cosL) * 180) / Math.PI / 15;
+  const equationOfTime = q / 15 - (ra < 0 ? ra + 24 : ra);
+
+  return { declination, equationOfTime };
+}
+
+// Calculate Prayer Times for a given Date and City
+export function calculatePrayerTimes(
+  date: Date = new Date(),
+  cityKey: string = 'dhaka',
+  asrMadhab: 'hanafi' | 'shafii' = 'hanafi'
+): DayPrayerSchedule {
+  const city = BANGLADESH_CITIES[cityKey] || BANGLADESH_CITIES.dhaka;
+
+  // Dhaka coordinates: 23.8103° N, 90.4125° E
+  const lat = 23.8103;
+  const lng = 90.4125;
+  const timezone = 6; // UTC+6
+
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  // Julian Day
+  const a = Math.floor((14 - month) / 12);
+  const y = year + 4800 - a;
+  const m = month + 12 * a - 3;
+  const julianDay =
+    day +
+    Math.floor((153 * m + 2) / 5) +
+    365 * y +
+    Math.floor(y / 4) -
+    Math.floor(y / 100) +
+    Math.floor(y / 400) -
+    32045;
+
+  const { declination, equationOfTime } = getSolarCoordinates(julianDay);
+
+  // Solar Noon (Zawal / Midday)
+  const solarNoon = 12 + timezone - lng / 15 - equationOfTime;
+
+  // Angles (Karachi / Islamic Foundation Bangladesh)
+  const fajrAngle = 18.0; // 18 degrees below horizon
+  const ishaAngle = 18.0;
+
+  const radLat = (lat * Math.PI) / 180;
+  const radDec = (declination * Math.PI) / 180;
+
+  // Sun Hour Angle helper
+  const hourAngle = (angle: number) => {
+    const radAngle = (angle * Math.PI) / 180;
+    const cosHA =
+      (-Math.sin(radAngle) - Math.sin(radLat) * Math.sin(radDec)) /
+      (Math.cos(radLat) * Math.cos(radDec));
+    if (cosHA > 1 || cosHA < -1) return 0;
+    return (Math.acos(cosHA) * 180) / Math.PI / 15;
+  };
+
+  // Asr shadow length factor (Shafii: 1, Hanafi: 2)
+  const asrHourAngle = (factor: number) => {
+    const angle =
+      (Math.atan(1 / (factor + Math.tan(Math.abs(radLat - radDec)))) * 180) /
+      Math.PI;
+    const radA = (angle * Math.PI) / 180;
+    const cosHA =
+      (Math.sin(radA) - Math.sin(radLat) * Math.sin(radDec)) /
+      (Math.cos(radLat) * Math.cos(radDec));
+    if (cosHA > 1 || cosHA < -1) return 0;
+    return (Math.acos(cosHA) * 180) / Math.PI / 15;
+  };
+
+  const sunriseHA = hourAngle(0.833);
+  const fajrHA = hourAngle(fajrAngle);
+  const ishaHA = hourAngle(ishaAngle);
+  const asrShafiiHA = asrHourAngle(1);
+  const asrHanafiHA = asrHourAngle(2);
+
+  // Raw times in decimal hours
+  let fajrDec = solarNoon - fajrHA;
+  let sunriseDec = solarNoon - sunriseHA;
+  let dhuhrDec = solarNoon + 0.06; // 4 minutes safety buffer
+  let asrShafiiDec = solarNoon + asrShafiiHA;
+  let asrHanafiDec = solarNoon + asrHanafiHA;
+  let maghribDec = solarNoon + sunriseHA + 0.05; // 3 min safety buffer
+  let ishaDec = solarNoon + ishaHA;
+
+  // Helper to convert decimal hours to Date
+  const toDate = (decHours: number, offsetMinutes: number = 0) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const totalMinutes = Math.round(decHours * 60) + offsetMinutes;
+    d.setMinutes(totalMinutes);
+    return d;
+  };
+
+  const fajrDate = toDate(fajrDec, city.fajrOffset);
+  const sunriseDate = toDate(sunriseDec, city.sunriseOffset);
+  const dhuhrDate = toDate(dhuhrDec, city.dhuhrOffset);
+  const asrShafiiDate = toDate(asrShafiiDec, city.asrOffset);
+  const asrHanafiDate = toDate(asrHanafiDec, city.asrOffset);
+  const maghribDate = toDate(maghribDec, city.maghribOffset);
+  const ishaDate = toDate(ishaDec, city.ishaOffset);
+
+  // Derived supplementary times
+  const sahriEndsDate = new Date(fajrDate.getTime() - 5 * 60000); // 5 min before Fajr
+  const ishraqDate = new Date(sunriseDate.getTime() + 18 * 60000); // 18 min after sunrise
+  const iftarDate = maghribDate;
+  const tahajjudEndDate = sahriEndsDate;
+
+  // Active Asr date according to preference
+  const chosenAsrDate = asrMadhab === 'hanafi' ? asrHanafiDate : asrShafiiDate;
+
+  const timesList: PrayerTimeItem[] = [
+    {
+      id: 'fajr',
+      name: 'ফজর',
+      nameArabic: 'الفجر',
+      time: formatTimeEn(fajrDate),
+      timeBn: formatTimeBn(fajrDate),
+      dateObj: fajrDate,
+    },
+    {
+      id: 'sunrise',
+      name: 'সূর্যোদয়',
+      nameArabic: 'الشروق',
+      time: formatTimeEn(sunriseDate),
+      timeBn: formatTimeBn(sunriseDate),
+      dateObj: sunriseDate,
+    },
+    {
+      id: 'dhuhr',
+      name: 'যোহর',
+      nameArabic: 'الظهر',
+      time: formatTimeEn(dhuhrDate),
+      timeBn: formatTimeBn(dhuhrDate),
+      dateObj: dhuhrDate,
+    },
+    {
+      id: 'asr',
+      name: 'আসর',
+      nameArabic: 'العصر',
+      time: formatTimeEn(chosenAsrDate),
+      timeBn: formatTimeBn(chosenAsrDate),
+      dateObj: chosenAsrDate,
+    },
+    {
+      id: 'maghrib',
+      name: 'মাগরিব (ইফতার)',
+      nameArabic: 'المغرب',
+      time: formatTimeEn(maghribDate),
+      timeBn: formatTimeBn(maghribDate),
+      dateObj: maghribDate,
+    },
+    {
+      id: 'isha',
+      name: 'ইশা',
+      nameArabic: 'العشاء',
+      time: formatTimeEn(ishaDate),
+      timeBn: formatTimeBn(ishaDate),
+      dateObj: ishaDate,
+    },
+  ];
+
+  // Determine current and next waqt
+  const now = date.getTime();
+  let currentWaqt: PrayerTimeItem | null = null;
+  let nextWaqt: PrayerTimeItem | null = null;
+
+  for (let i = 0; i < timesList.length; i++) {
+    const curr = timesList[i];
+    const next = timesList[(i + 1) % timesList.length];
+
+    if (now >= curr.dateObj.getTime() && now < next.dateObj.getTime()) {
+      currentWaqt = curr;
+      nextWaqt = next;
+      curr.isCurrent = true;
+      next.isNext = true;
+      break;
+    }
+  }
+
+  // If after Isha or before Fajr
+  if (!currentWaqt) {
+    if (now >= ishaDate.getTime()) {
+      currentWaqt = timesList[5]; // Isha
+      timesList[5].isCurrent = true;
+      // Next is tomorrow's Fajr
+      const tomorrowFajr = new Date(fajrDate.getTime() + 24 * 3600000);
+      nextWaqt = {
+        id: 'fajr',
+        name: 'ফজর',
+        nameArabic: 'الفجر',
+        time: formatTimeEn(tomorrowFajr),
+        timeBn: formatTimeBn(tomorrowFajr),
+        dateObj: tomorrowFajr,
+        isNext: true,
+      };
+    } else {
+      currentWaqt = timesList[5]; // Isha of yesterday
+      nextWaqt = timesList[0]; // Fajr
+      timesList[0].isNext = true;
+    }
+  }
+
+  // Calculate remaining time
+  let remainingTime = '';
+  if (nextWaqt) {
+    const diffMs = nextWaqt.dateObj.getTime() - now;
+    if (diffMs > 0) {
+      const diffMins = Math.floor(diffMs / 60000);
+      const hours = Math.floor(diffMins / 60);
+      const mins = diffMins % 60;
+      if (hours > 0) {
+        remainingTime = `${toBengaliDigits(hours)} ঘণ্টা ${toBengaliDigits(mins)} মিনিট`;
+      } else {
+        remainingTime = `${toBengaliDigits(mins)} মিনিট`;
+      }
+    }
+  }
+
+  return {
+    city,
+    dateStr: date.toLocaleDateString('bn-BD', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    }),
+    fajr: formatTimeBn(fajrDate),
+    sahriEnds: formatTimeBn(sahriEndsDate),
+    sunrise: formatTimeBn(sunriseDate),
+    ishraq: formatTimeBn(ishraqDate),
+    dhuhr: formatTimeBn(dhuhrDate),
+    asrHanafi: formatTimeBn(asrHanafiDate),
+    asrShafii: formatTimeBn(asrShafiiDate),
+    maghrib: formatTimeBn(maghribDate),
+    iftar: formatTimeBn(iftarDate),
+    isha: formatTimeBn(ishaDate),
+    tahajjudEnd: formatTimeBn(tahajjudEndDate),
+    currentWaqt,
+    nextWaqt,
+    remainingTime,
+    timesList,
+  };
+}
