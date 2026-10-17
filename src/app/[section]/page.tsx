@@ -78,7 +78,8 @@ export default async function SectionRoutePage({
     `${section.name} (${section.arabicTitle})`,
     section.description,
     `${SITE_URL}/${section.slug}/`,
-    section.categories.length
+    section.categories.length,
+    section.slug
   );
 
   return (

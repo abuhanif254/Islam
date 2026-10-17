@@ -8,6 +8,7 @@ import {
   getBreadcrumbJsonLd,
   getArticleJsonLd,
   getFaqJsonLd,
+  getClaimReviewJsonLd,
 } from '@/lib/seo';
 
 export function generateStaticParams() {
@@ -118,6 +119,19 @@ export default async function ArticleRoutePage({
 
   const faqJsonLd = faqItems.length > 0 ? getFaqJsonLd(faqItems) : null;
 
+  // Generate ClaimReview Schema if article has tahqiq or verification tags
+  const isTahqiqArticle = article.tags && article.tags.some(t => 
+    t.includes('তাহকীক') || t.includes('সনদ') || t.includes('জাল') || t.includes('বানোয়াট') || t.includes('সহীহ')
+  );
+
+  const claimReviewJsonLd = isTahqiqArticle ? getClaimReviewJsonLd({
+    claimReviewed: article.subtitle || article.title,
+    ratingValue: '5',
+    ratingExplanation: `সহীহ ও প্রামাণ্য সনদ দ্বারা পরীক্ষিত। নিরীক্ষক: ${article.reviewer}`,
+    reviewUrl: `${SITE_URL}/${section.slug}/${category.slug}/${article.slug}/`,
+    authorName: `ইসলাম পোর্টাল তাহকীক পর্ষদ (${article.reviewer})`
+  }) : null;
+
   return (
     <>
       <script
@@ -132,6 +146,12 @@ export default async function ArticleRoutePage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
+      {claimReviewJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(claimReviewJsonLd) }}
         />
       )}
       <IslamPortal

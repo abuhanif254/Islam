@@ -59,6 +59,17 @@ export default function PrayerTimesAndHijriWidget({
     return getHijriDate(currentTime, moonAdjustment);
   }, [currentTime, moonAdjustment]);
 
+  // Group 64 districts by administrative division for clean navigation
+  const groupedCities = useMemo(() => {
+    const groups: Record<string, [string, (typeof BANGLADESH_CITIES)[string]][]> = {};
+    for (const [k, c] of Object.entries(BANGLADESH_CITIES)) {
+      const div = c.divisionBn || 'অন্যান্য';
+      if (!groups[div]) groups[div] = [];
+      groups[div].push([k, c]);
+    }
+    return Object.entries(groups);
+  }, []);
+
   return (
     <div className="bg-[#FFFFFF] dark:bg-[#141615] border-b-2 border-[#141615] text-[#141615] dark:text-[#FAF8F5] transition-colors">
       {/* 1. TOP COMPACT STATUS RIBBON */}
@@ -96,10 +107,14 @@ export default function PrayerTimesAndHijriWidget({
               onChange={e => setSelectedCity(e.target.value)}
               className="bg-transparent font-bold text-[#141615] dark:text-[#FAF8F5] border-b border-[#DCD7CD] focus:outline-none cursor-pointer py-0.5"
             >
-              {Object.entries(BANGLADESH_CITIES).map(([k, c]) => (
-                <option key={k} value={k} className="dark:bg-[#141615] text-[#141615] dark:text-[#FAF8F5]">
-                  {c.nameBn}
-                </option>
+              {groupedCities.map(([divName, cities]) => (
+                <optgroup key={divName} label={`${divName} বিভাগ`}>
+                  {cities.map(([k, c]) => (
+                    <option key={k} value={k} className="dark:bg-[#141615] text-[#141615] dark:text-[#FAF8F5]">
+                      {c.nameBn}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -147,7 +162,7 @@ export default function PrayerTimesAndHijriWidget({
                 <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#B85D19] uppercase tracking-wider">
                   <span>ইসলামিক ফাউন্ডেশন বাংলাদেশ পদ্ধতি</span>
                   <span>•</span>
-                  <span>{prayerSchedule.city.nameBn} বিভাগ</span>
+                  <span>{prayerSchedule.city.nameBn} জেলা {prayerSchedule.city.divisionBn ? `(${prayerSchedule.city.divisionBn} বিভাগ)` : ''}</span>
                 </div>
                 <h3 className="font-editorial text-xl sm:text-2xl font-extrabold text-[#0B4F3B] dark:text-[#4CC39A] mt-0.5">
                   আজকের পাঁচ ওয়াক্ত সালাত, সাহরী ও ইফতারের সময়সূচি

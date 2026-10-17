@@ -6,6 +6,7 @@
 export interface CityOffset {
   name: string;
   nameBn: string;
+  divisionBn?: string;
   fajrOffset: number; // minutes from Dhaka
   sunriseOffset: number;
   dhuhrOffset: number;
@@ -15,86 +16,85 @@ export interface CityOffset {
 }
 
 export const BANGLADESH_CITIES: Record<string, CityOffset> = {
-  dhaka: {
-    name: 'Dhaka',
-    nameBn: 'ঢাকা',
-    fajrOffset: 0,
-    sunriseOffset: 0,
-    dhuhrOffset: 0,
-    asrOffset: 0,
-    maghribOffset: 0,
-    ishaOffset: 0,
-  },
-  chittagong: {
-    name: 'Chittagong',
-    nameBn: 'চট্টগ্রাম',
-    fajrOffset: -5,
-    sunriseOffset: -5,
-    dhuhrOffset: -5,
-    asrOffset: -5,
-    maghribOffset: -5,
-    ishaOffset: -5,
-  },
-  sylhet: {
-    name: 'Sylhet',
-    nameBn: 'সিলেট',
-    fajrOffset: -6,
-    sunriseOffset: -6,
-    dhuhrOffset: -6,
-    asrOffset: -6,
-    maghribOffset: -6,
-    ishaOffset: -6,
-  },
-  rajshahi: {
-    name: 'Rajshahi',
-    nameBn: 'রাজশাহী',
-    fajrOffset: 7,
-    sunriseOffset: 7,
-    dhuhrOffset: 7,
-    asrOffset: 7,
-    maghribOffset: 7,
-    ishaOffset: 7,
-  },
-  khulna: {
-    name: 'Khulna',
-    nameBn: 'খুলনা',
-    fajrOffset: 4,
-    sunriseOffset: 4,
-    dhuhrOffset: 4,
-    asrOffset: 4,
-    maghribOffset: 4,
-    ishaOffset: 4,
-  },
-  barisal: {
-    name: 'Barisal',
-    nameBn: 'বরিশাল',
-    fajrOffset: 1,
-    sunriseOffset: 1,
-    dhuhrOffset: 1,
-    asrOffset: 1,
-    maghribOffset: 1,
-    ishaOffset: 1,
-  },
-  rangpur: {
-    name: 'Rangpur',
-    nameBn: 'রংপুর',
-    fajrOffset: 6,
-    sunriseOffset: 6,
-    dhuhrOffset: 6,
-    asrOffset: 6,
-    maghribOffset: 6,
-    ishaOffset: 6,
-  },
-  mymensingh: {
-    name: 'Mymensingh',
-    nameBn: 'ময়মনসিংহ',
-    fajrOffset: 0,
-    sunriseOffset: 0,
-    dhuhrOffset: 0,
-    asrOffset: 0,
-    maghribOffset: 0,
-    ishaOffset: 0,
-  },
+  // ঢাকা বিভাগ (১৩টি জেলা)
+  dhaka: { name: 'Dhaka', nameBn: 'ঢাকা', divisionBn: 'ঢাকা', fajrOffset: 0, sunriseOffset: 0, dhuhrOffset: 0, asrOffset: 0, maghribOffset: 0, ishaOffset: 0 },
+  gazipur: { name: 'Gazipur', nameBn: 'গাজীপুর', divisionBn: 'ঢাকা', fajrOffset: 0, sunriseOffset: 0, dhuhrOffset: 0, asrOffset: 0, maghribOffset: 0, ishaOffset: 0 },
+  narayanganj: { name: 'Narayanganj', nameBn: 'নারায়ণগঞ্জ', divisionBn: 'ঢাকা', fajrOffset: -1, sunriseOffset: -1, dhuhrOffset: -1, asrOffset: -1, maghribOffset: -1, ishaOffset: -1 },
+  tangail: { name: 'Tangail', nameBn: 'টাঙ্গাইল', divisionBn: 'ঢাকা', fajrOffset: 2, sunriseOffset: 2, dhuhrOffset: 2, asrOffset: 2, maghribOffset: 2, ishaOffset: 2 },
+  faridpur: { name: 'Faridpur', nameBn: 'ফরিদপুর', divisionBn: 'ঢাকা', fajrOffset: 2, sunriseOffset: 2, dhuhrOffset: 2, asrOffset: 2, maghribOffset: 2, ishaOffset: 2 },
+  gopalganj: { name: 'Gopalganj', nameBn: 'গোপালগঞ্জ', divisionBn: 'ঢাকা', fajrOffset: 3, sunriseOffset: 3, dhuhrOffset: 3, asrOffset: 3, maghribOffset: 3, ishaOffset: 3 },
+  kishoreganj: { name: 'Kishoreganj', nameBn: 'কিশোরগঞ্জ', divisionBn: 'ঢাকা', fajrOffset: -2, sunriseOffset: -2, dhuhrOffset: -2, asrOffset: -2, maghribOffset: -2, ishaOffset: -2 },
+  madaripur: { name: 'Madaripur', nameBn: 'মাদারীপুর', divisionBn: 'ঢাকা', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
+  manikganj: { name: 'Manikganj', nameBn: 'মানিকগঞ্জ', divisionBn: 'ঢাকা', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
+  munshiganj: { name: 'Munshiganj', nameBn: 'মুন্সীগঞ্জ', divisionBn: 'ঢাকা', fajrOffset: -1, sunriseOffset: -1, dhuhrOffset: -1, asrOffset: -1, maghribOffset: -1, ishaOffset: -1 },
+  narsingdi: { name: 'Narsingdi', nameBn: 'নরসিংদী', divisionBn: 'ঢাকা', fajrOffset: -1, sunriseOffset: -1, dhuhrOffset: -1, asrOffset: -1, maghribOffset: -1, ishaOffset: -1 },
+  rajbari: { name: 'Rajbari', nameBn: 'রাজবাড়ী', divisionBn: 'ঢাকা', fajrOffset: 3, sunriseOffset: 3, dhuhrOffset: 3, asrOffset: 3, maghribOffset: 3, ishaOffset: 3 },
+  shariatpur: { name: 'Shariatpur', nameBn: 'শরীয়তপুর', divisionBn: 'ঢাকা', fajrOffset: 0, sunriseOffset: 0, dhuhrOffset: 0, asrOffset: 0, maghribOffset: 0, ishaOffset: 0 },
+
+  // চট্টগ্রাম বিভাগ (১১টি জেলা)
+  chittagong: { name: 'Chittagong', nameBn: 'চট্টগ্রাম', divisionBn: 'চট্টগ্রাম', fajrOffset: -5, sunriseOffset: -5, dhuhrOffset: -5, asrOffset: -5, maghribOffset: -5, ishaOffset: -5 },
+  'coxs-bazar': { name: "Cox's Bazar", nameBn: 'কক্সবাজার', divisionBn: 'চট্টগ্রাম', fajrOffset: -6, sunriseOffset: -6, dhuhrOffset: -6, asrOffset: -6, maghribOffset: -6, ishaOffset: -6 },
+  cumilla: { name: 'Cumilla', nameBn: 'কুমিল্লা', divisionBn: 'চট্টগ্রাম', fajrOffset: -3, sunriseOffset: -3, dhuhrOffset: -3, asrOffset: -3, maghribOffset: -3, ishaOffset: -3 },
+  feni: { name: 'Feni', nameBn: 'ফেনী', divisionBn: 'চট্টগ্রাম', fajrOffset: -4, sunriseOffset: -4, dhuhrOffset: -4, asrOffset: -4, maghribOffset: -4, ishaOffset: -4 },
+  brahmanbaria: { name: 'Brahmanbaria', nameBn: 'ব্রাহ্মণবাড়িয়া', divisionBn: 'চট্টগ্রাম', fajrOffset: -3, sunriseOffset: -3, dhuhrOffset: -3, asrOffset: -3, maghribOffset: -3, ishaOffset: -3 },
+  chandpur: { name: 'Chandpur', nameBn: 'চাঁদপুর', divisionBn: 'চট্টগ্রাম', fajrOffset: -1, sunriseOffset: -1, dhuhrOffset: -1, asrOffset: -1, maghribOffset: -1, ishaOffset: -1 },
+  lakshmipur: { name: 'Lakshmipur', nameBn: 'লক্ষ্মীপুর', divisionBn: 'চট্টগ্রাম', fajrOffset: -2, sunriseOffset: -2, dhuhrOffset: -2, asrOffset: -2, maghribOffset: -2, ishaOffset: -2 },
+  noakhali: { name: 'Noakhali', nameBn: 'নোয়াখালী', divisionBn: 'চট্টগ্রাম', fajrOffset: -3, sunriseOffset: -3, dhuhrOffset: -3, asrOffset: -3, maghribOffset: -3, ishaOffset: -3 },
+  bandarban: { name: 'Bandarban', nameBn: 'বান্দরবান', divisionBn: 'চট্টগ্রাম', fajrOffset: -7, sunriseOffset: -7, dhuhrOffset: -7, asrOffset: -7, maghribOffset: -7, ishaOffset: -7 },
+  khagrachhari: { name: 'Khagrachhari', nameBn: 'খাগড়াছড়ি', divisionBn: 'চট্টগ্রাম', fajrOffset: -6, sunriseOffset: -6, dhuhrOffset: -6, asrOffset: -6, maghribOffset: -6, ishaOffset: -6 },
+  rangamati: { name: 'Rangamati', nameBn: 'রাঙ্গামাটি', divisionBn: 'চট্টগ্রাম', fajrOffset: -7, sunriseOffset: -7, dhuhrOffset: -7, asrOffset: -7, maghribOffset: -7, ishaOffset: -7 },
+
+  // সিলেট বিভাগ (৪টি জেলা)
+  sylhet: { name: 'Sylhet', nameBn: 'সিলেট', divisionBn: 'সিলেট', fajrOffset: -6, sunriseOffset: -6, dhuhrOffset: -6, asrOffset: -6, maghribOffset: -6, ishaOffset: -6 },
+  moulvibazar: { name: 'Moulvibazar', nameBn: 'মৌলভীবাজার', divisionBn: 'সিলেট', fajrOffset: -5, sunriseOffset: -5, dhuhrOffset: -5, asrOffset: -5, maghribOffset: -5, ishaOffset: -5 },
+  habiganj: { name: 'Habiganj', nameBn: 'হবিগঞ্জ', divisionBn: 'সিলেট', fajrOffset: -4, sunriseOffset: -4, dhuhrOffset: -4, asrOffset: -4, maghribOffset: -4, ishaOffset: -4 },
+  sunamganj: { name: 'Sunamganj', nameBn: 'সুনামগঞ্জ', divisionBn: 'সিলেট', fajrOffset: -4, sunriseOffset: -4, dhuhrOffset: -4, asrOffset: -4, maghribOffset: -4, ishaOffset: -4 },
+
+  // রাজশাহী বিভাগ (৮টি জেলা)
+  rajshahi: { name: 'Rajshahi', nameBn: 'রাজশাহী', divisionBn: 'রাজশাহী', fajrOffset: 7, sunriseOffset: 7, dhuhrOffset: 7, asrOffset: 7, maghribOffset: 7, ishaOffset: 7 },
+  bogura: { name: 'Bogura', nameBn: 'বগুড়া', divisionBn: 'রাজশাহী', fajrOffset: 4, sunriseOffset: 4, dhuhrOffset: 4, asrOffset: 4, maghribOffset: 4, ishaOffset: 4 },
+  pabna: { name: 'Pabna', nameBn: 'পাবনা', divisionBn: 'রাজশাহী', fajrOffset: 4, sunriseOffset: 4, dhuhrOffset: 4, asrOffset: 4, maghribOffset: 4, ishaOffset: 4 },
+  sirajganj: { name: 'Sirajganj', nameBn: 'সিরাজগঞ্জ', divisionBn: 'রাজশাহী', fajrOffset: 3, sunriseOffset: 3, dhuhrOffset: 3, asrOffset: 3, maghribOffset: 3, ishaOffset: 3 },
+  naogaon: { name: 'Naogaon', nameBn: 'নওগাঁ', divisionBn: 'রাজশাহী', fajrOffset: 6, sunriseOffset: 6, dhuhrOffset: 6, asrOffset: 6, maghribOffset: 6, ishaOffset: 6 },
+  natore: { name: 'Natore', nameBn: 'নাটোর', divisionBn: 'রাজশাহী', fajrOffset: 5, sunriseOffset: 5, dhuhrOffset: 5, asrOffset: 5, maghribOffset: 5, ishaOffset: 5 },
+  'chapai-nawabganj': { name: 'Chapai Nawabganj', nameBn: 'চাঁপাইনবাবগঞ্জ', divisionBn: 'রাজশাহী', fajrOffset: 8, sunriseOffset: 8, dhuhrOffset: 8, asrOffset: 8, maghribOffset: 8, ishaOffset: 8 },
+  joypurhat: { name: 'Joypurhat', nameBn: 'জয়পুরহাট', divisionBn: 'রাজশাহী', fajrOffset: 5, sunriseOffset: 5, dhuhrOffset: 5, asrOffset: 5, maghribOffset: 5, ishaOffset: 5 },
+
+  // খুলনা বিভাগ (১০টি জেলা)
+  khulna: { name: 'Khulna', nameBn: 'খুলনা', divisionBn: 'খুলনা', fajrOffset: 4, sunriseOffset: 4, dhuhrOffset: 4, asrOffset: 4, maghribOffset: 4, ishaOffset: 4 },
+  jashore: { name: 'Jashore', nameBn: 'যশোর', divisionBn: 'খুলনা', fajrOffset: 5, sunriseOffset: 5, dhuhrOffset: 5, asrOffset: 5, maghribOffset: 5, ishaOffset: 5 },
+  kushtia: { name: 'Kushtia', nameBn: 'কুষ্টিয়া', divisionBn: 'খুলনা', fajrOffset: 5, sunriseOffset: 5, dhuhrOffset: 5, asrOffset: 5, maghribOffset: 5, ishaOffset: 5 },
+  satkhira: { name: 'Satkhira', nameBn: 'সাতক্ষীরা', divisionBn: 'খুলনা', fajrOffset: 5, sunriseOffset: 5, dhuhrOffset: 5, asrOffset: 5, maghribOffset: 5, ishaOffset: 5 },
+  bagerhat: { name: 'Bagerhat', nameBn: 'বাগেরহাট', divisionBn: 'খুলনা', fajrOffset: 3, sunriseOffset: 3, dhuhrOffset: 3, asrOffset: 3, maghribOffset: 3, ishaOffset: 3 },
+  chuadanga: { name: 'Chuadanga', nameBn: 'চুয়াডাঙ্গা', divisionBn: 'খুলনা', fajrOffset: 6, sunriseOffset: 6, dhuhrOffset: 6, asrOffset: 6, maghribOffset: 6, ishaOffset: 6 },
+  jhenaidah: { name: 'Jhenaidah', nameBn: 'ঝিনাইদহ', divisionBn: 'খুলনা', fajrOffset: 5, sunriseOffset: 5, dhuhrOffset: 5, asrOffset: 5, maghribOffset: 5, ishaOffset: 5 },
+  magura: { name: 'Magura', nameBn: 'মাগুরা', divisionBn: 'খুলনা', fajrOffset: 4, sunriseOffset: 4, dhuhrOffset: 4, asrOffset: 4, maghribOffset: 4, ishaOffset: 4 },
+  meherpur: { name: 'Meherpur', nameBn: 'মেহেরপুর', divisionBn: 'খুলনা', fajrOffset: 7, sunriseOffset: 7, dhuhrOffset: 7, asrOffset: 7, maghribOffset: 7, ishaOffset: 7 },
+  narail: { name: 'Narail', nameBn: 'নড়াইল', divisionBn: 'খুলনা', fajrOffset: 4, sunriseOffset: 4, dhuhrOffset: 4, asrOffset: 4, maghribOffset: 4, ishaOffset: 4 },
+
+  // বরিশাল বিভাগ (৬টি জেলা)
+  barisal: { name: 'Barisal', nameBn: 'বরিশাল', divisionBn: 'বরিশাল', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
+  bhola: { name: 'Bhola', nameBn: 'ভোলা', divisionBn: 'বরিশাল', fajrOffset: -1, sunriseOffset: -1, dhuhrOffset: -1, asrOffset: -1, maghribOffset: -1, ishaOffset: -1 },
+  patuakhali: { name: 'Patuakhali', nameBn: 'পটুয়াখালী', divisionBn: 'বরিশাল', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
+  pirojpur: { name: 'Pirojpur', nameBn: 'পিরোজপুর', divisionBn: 'বরিশাল', fajrOffset: 2, sunriseOffset: 2, dhuhrOffset: 2, asrOffset: 2, maghribOffset: 2, ishaOffset: 2 },
+  barguna: { name: 'Barguna', nameBn: 'বরগুনা', divisionBn: 'বরিশাল', fajrOffset: 2, sunriseOffset: 2, dhuhrOffset: 2, asrOffset: 2, maghribOffset: 2, ishaOffset: 2 },
+  jhalokati: { name: 'Jhalokati', nameBn: 'ঝালকাঠি', divisionBn: 'বরিশাল', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
+
+  // রংপুর বিভাগ (৮টি জেলা)
+  rangpur: { name: 'Rangpur', nameBn: 'রংপুর', divisionBn: 'রংপুর', fajrOffset: 5, sunriseOffset: 5, dhuhrOffset: 5, asrOffset: 5, maghribOffset: 5, ishaOffset: 5 },
+  dinajpur: { name: 'Dinajpur', nameBn: 'দিনাজপুর', divisionBn: 'রংপুর', fajrOffset: 7, sunriseOffset: 7, dhuhrOffset: 7, asrOffset: 7, maghribOffset: 7, ishaOffset: 7 },
+  gaibandha: { name: 'Gaibandha', nameBn: 'গাইবান্ধা', divisionBn: 'রংপুর', fajrOffset: 4, sunriseOffset: 4, dhuhrOffset: 4, asrOffset: 4, maghribOffset: 4, ishaOffset: 4 },
+  kurigram: { name: 'Kurigram', nameBn: 'কুড়িগ্রাম', divisionBn: 'রংপুর', fajrOffset: 3, sunriseOffset: 3, dhuhrOffset: 3, asrOffset: 3, maghribOffset: 3, ishaOffset: 3 },
+  lalmonirhat: { name: 'Lalmonirhat', nameBn: 'লালমনিরহাট', divisionBn: 'রংপুর', fajrOffset: 4, sunriseOffset: 4, dhuhrOffset: 4, asrOffset: 4, maghribOffset: 4, ishaOffset: 4 },
+  nilphamari: { name: 'Nilphamari', nameBn: 'নীলফামারী', divisionBn: 'রংপুর', fajrOffset: 6, sunriseOffset: 6, dhuhrOffset: 6, asrOffset: 6, maghribOffset: 6, ishaOffset: 6 },
+  panchagarh: { name: 'Panchagarh', nameBn: 'পঞ্চগড়', divisionBn: 'রংপুর', fajrOffset: 8, sunriseOffset: 8, dhuhrOffset: 8, asrOffset: 8, maghribOffset: 8, ishaOffset: 8 },
+  thakurgaon: { name: 'Thakurgaon', nameBn: 'ঠাকুরগাঁও', divisionBn: 'রংপুর', fajrOffset: 8, sunriseOffset: 8, dhuhrOffset: 8, asrOffset: 8, maghribOffset: 8, ishaOffset: 8 },
+
+  // ময়মনসিংহ বিভাগ (৪টি জেলা)
+  mymensingh: { name: 'Mymensingh', nameBn: 'ময়মনসিংহ', divisionBn: 'ময়মনসিংহ', fajrOffset: 0, sunriseOffset: 0, dhuhrOffset: 0, asrOffset: 0, maghribOffset: 0, ishaOffset: 0 },
+  jamalpur: { name: 'Jamalpur', nameBn: 'জামালপুর', divisionBn: 'ময়মনসিংহ', fajrOffset: 2, sunriseOffset: 2, dhuhrOffset: 2, asrOffset: 2, maghribOffset: 2, ishaOffset: 2 },
+  netrokona: { name: 'Netrokona', nameBn: 'নেত্রকোণা', divisionBn: 'ময়মনসিংহ', fajrOffset: -1, sunriseOffset: -1, dhuhrOffset: -1, asrOffset: -1, maghribOffset: -1, ishaOffset: -1 },
+  sherpur: { name: 'Sherpur', nameBn: 'শেরপুর', divisionBn: 'ময়মনসিংহ', fajrOffset: 2, sunriseOffset: 2, dhuhrOffset: 2, asrOffset: 2, maghribOffset: 2, ishaOffset: 2 },
 };
 
 export interface PrayerTimeItem {

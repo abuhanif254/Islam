@@ -90,7 +90,8 @@ export default async function CategoryRoutePage({
     `${category.name} — ${section.name}`,
     category.shortDesc,
     `${SITE_URL}/${section.slug}/${category.slug}/`,
-    category.articleCount
+    category.articleCount,
+    category.slug
   );
 
   return (

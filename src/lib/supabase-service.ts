@@ -3,6 +3,7 @@ import { SECTIONS_DATA } from '@/data/sections';
 import { INITIAL_ARTICLES } from '@/data/articles';
 import { Article, CategoryItem, SectionPage } from '@/types';
 import { toBengaliDigits } from './prayer-times';
+import { submitToIndexNow } from './indexnow';
 
 const LOCAL_STORAGE_ARTICLES_KEY = 'islam_admin_articles_v1';
 const LOCAL_STORAGE_CATEGORIES_KEY = 'islam_admin_categories_v1';
@@ -251,6 +252,14 @@ export async function saveAdminArticle(article: DbArticle): Promise<{ success: b
   }
   saveLocalArticles(local);
 
+  // Instant search engine ping via IndexNow protocol
+  if (article.status === 'published' && article.section_id && article.category_id && article.slug) {
+    const articleUrl = `/${article.section_id}/${article.category_id}/${article.slug}/`;
+    submitToIndexNow([articleUrl, `/${article.section_id}/`, `/${article.section_id}/${article.category_id}/`]).catch(err => {
+      console.warn('IndexNow auto-ping error:', err);
+    });
+  }
+
   return { success: true };
 }
 
@@ -393,6 +402,12 @@ export async function saveAdminCategory(category: DbCategory): Promise<{ success
     });
   }
   saveLocalCategories(local);
+
+  // Instant search engine ping via IndexNow for updated category
+  const categoryUrl = `/${cleanCategory.section_id}/${cleanCategory.slug}/`;
+  submitToIndexNow([categoryUrl, `/${cleanCategory.section_id}/`]).catch(err => {
+    console.warn('IndexNow auto-ping category error:', err);
+  });
 
   return { success: true };
 }
