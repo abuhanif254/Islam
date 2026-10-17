@@ -1,0 +1,16 @@
+{
+  "name": "ইসলাম — প্রামাণ্য ডিজিটাল ম্যাগাজিন ও বিশ্বকোষ",
+  "short_name": "ইসলাম",
+  "description": "পবিত্র কুরআন, সহীহ সুন্নাহ এবং সালাফে সালেহীনের মানহাজ অনুসারে পরিচালিত প্রামাণ্য ইসলামী ওয়েব পোর্টাল।",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F5",
+  "theme_color": "#0B4F3B",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
