@@ -91,10 +91,10 @@ CREATE POLICY "Allow public read on published articles" ON public.articles FOR S
 CREATE POLICY "Allow public read on bookmarks" ON public.bookmarks FOR SELECT USING (true);
 
 -- Admin Write Access Policies
-CREATE POLICY "Allow admin full access on sections" ON public.sections FOR ALL USING (true);
-CREATE POLICY "Allow admin full access on categories" ON public.categories FOR ALL USING (true);
-CREATE POLICY "Allow admin full access on articles" ON public.articles FOR ALL USING (true);
-CREATE POLICY "Allow admin full access on bookmarks" ON public.bookmarks FOR ALL USING (true);
+CREATE POLICY "Allow admin full access on sections" ON public.sections FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow admin full access on categories" ON public.categories FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow admin full access on articles" ON public.articles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow admin full access on bookmarks" ON public.bookmarks FOR ALL USING (true) WITH CHECK (true);
 
 -- 8. INDEXES FOR LIGHTNING PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_categories_section_id ON public.categories(section_id);

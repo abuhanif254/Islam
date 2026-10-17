@@ -63,7 +63,16 @@ function getLocalArticles(): DbArticle[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_ARTICLES_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Sanitize any legacy or mismatched category_ids
+        return parsed.map((art: DbArticle) => {
+          if (art.category_id === 'allah-rububiyyah') {
+            return { ...art, category_id: 'tawheed-fundamentals' };
+          }
+          return art;
+        });
+      }
     }
   } catch (e) {
     console.error('Failed to read from localStorage', e);
@@ -495,7 +504,7 @@ export async function syncDatasetToSupabase(): Promise<{
     const { error: secError } = await supabase.from('sections').upsert(dbSections, { onConflict: 'id' });
     if (secError) throw new Error(`Sections sync failed: ${secError.message}`);
 
-    // 2. Sync Categories (in batches of 50)
+    // 2. Sync Categories (all 242 default + any custom created categories)
     const allCategories: DbCategory[] = [];
     SECTIONS_DATA.forEach(s => {
       s.categories.forEach(c => {
@@ -514,22 +523,47 @@ export async function syncDatasetToSupabase(): Promise<{
       });
     });
 
+    // Merge any custom categories from local storage
+    const customLocalCats = getLocalCategories();
+    customLocalCats.forEach(clc => {
+      if (!allCategories.some(c => c.id === clc.id)) {
+        allCategories.push(clc);
+      }
+    });
+
     for (let i = 0; i < allCategories.length; i += 50) {
       const batch = allCategories.slice(i, i + 50);
       const { error: catError } = await supabase.from('categories').upsert(batch, { onConflict: 'id' });
       if (catError) throw new Error(`Categories sync failed: ${catError.message}`);
     }
 
-    // 3. Sync Articles
-    const localArticles = getLocalArticles();
-    const { error: artError } = await supabase.from('articles').upsert(localArticles, { onConflict: 'id' });
+    // 3. Sync Articles with Foreign Key Validation
+    const validCatIds = new Set(allCategories.map(c => c.id));
+    const rawLocalArticles = getLocalArticles();
+    const sanitizedArticles: DbArticle[] = rawLocalArticles.map(art => {
+      let finalCatId = art.category_id;
+      // If category_id does not exist in categories table, auto-map to a valid category
+      if (!validCatIds.has(finalCatId)) {
+        const matchingCat = allCategories.find(c => c.section_id === art.section_id);
+        finalCatId = matchingCat ? matchingCat.id : 'tawheed-fundamentals';
+      }
+      return {
+        ...art,
+        category_id: finalCatId
+      };
+    });
+
+    // Save back sanitized articles so local storage remains consistent
+    saveLocalArticles(sanitizedArticles);
+
+    const { error: artError } = await supabase.from('articles').upsert(sanitizedArticles, { onConflict: 'id' });
     if (artError) throw new Error(`Articles sync failed: ${artError.message}`);
 
     return {
       success: true,
       sectionsSynced: dbSections.length,
       categoriesSynced: allCategories.length,
-      articlesSynced: localArticles.length,
+      articlesSynced: sanitizedArticles.length,
       message: 'সকল বিভাগ, ক্যাটেগরি এবং প্রবন্ধ সফলভাবে Supabase ডাটাবেজে সিঙ্ক হয়েছে!'
     };
   } catch (err: any) {
