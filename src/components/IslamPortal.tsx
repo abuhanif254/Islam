@@ -1354,13 +1354,111 @@ export default function IslamPortal({
 
                 <div className={`space-y-6 ${bodyFontSizeClass}`}>
                   {currentArticle.contentSections.map((sec, idx) => (
-                    <div key={idx} className="space-y-2.5">
+                    <div key={idx} className="space-y-3">
                       <h2 className="font-editorial text-xl sm:text-2xl font-bold text-[#0B4F3B] dark:text-[#4CC39A] border-b pb-1.5 border-[#DCD7CD] dark:border-[#26332F]">
                         {sec.heading}
                       </h2>
-                      <p className={`${themeClasses.textPrimary} leading-relaxed`}>
-                        {sec.body}
-                      </p>
+                      <div className={`${themeClasses.textPrimary} leading-relaxed space-y-3`}>
+                        {sec.body.split(/(\[(?:কুরআন|হাদিস|মাসআলা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা)\])/g).map((part, pIdx) => {
+                          const quranMatch = part.match(/\[কুরআন:\s*([^\]]*)\]([\s\S]*?)\[\/কুরআন\]/);
+                          if (quranMatch) {
+                            const ref = quranMatch[1];
+                            const content = quranMatch[2];
+                            const arabicMatch = content.match(/আরবী:\s*(.*)/);
+                            const translitMatch = content.match(/উচ্চারণ:\s*(.*)/);
+                            const bengaliMatch = content.match(/অনুবাদ:\s*(.*)/);
+
+                            return (
+                              <div key={pIdx} className={`my-4 p-5 ${themeClasses.bgAccentTint} border-2 border-[#0B4F3B] space-y-2.5`}>
+                                <div className="flex items-center justify-between text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] pb-1 border-b border-[#0B4F3B]/20">
+                                  <span>পবিত্র কুরআন থেকে উদ্ধৃতি</span>
+                                  <span className="font-mono">{ref}</span>
+                                </div>
+                                {arabicMatch && (
+                                  <p dir="rtl" className="font-arabic text-2xl leading-loose font-bold text-[#0B4F3B] dark:text-[#4CC39A] text-right">
+                                    {arabicMatch[1]}
+                                  </p>
+                                )}
+                                {translitMatch && (
+                                  <p className={`text-xs italic ${themeClasses.textSecondary}`}>
+                                    উচ্চারণ: {translitMatch[1]}
+                                  </p>
+                                )}
+                                {bengaliMatch && (
+                                  <p className="text-sm sm:text-base font-semibold leading-relaxed">
+                                    {bengaliMatch[1]}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          const hadithMatch = part.match(/\[হাদিস:\s*([^\]]*)\]([\s\S]*?)\[\/হাদিস\]/);
+                          if (hadithMatch) {
+                            const header = hadithMatch[1];
+                            const content = hadithMatch[2];
+                            const arabicMatch = content.match(/মতন:\s*(.*)/);
+                            const narratorMatch = content.match(/রাবী:\s*(.*)/);
+                            const bengaliMatch = content.match(/অনুবাদ:\s*(.*)/);
+
+                            return (
+                              <div key={pIdx} className={`my-4 p-5 ${themeClasses.bgWarmTint} border-l-4 border-[#B85D19] space-y-2.5`}>
+                                <div className="flex items-center justify-between text-xs font-bold text-[#B85D19] pb-1 border-b border-[#B85D19]/20">
+                                  <span>হাদিস শরীফ রেফারেন্স</span>
+                                  <span className="font-mono">{header}</span>
+                                </div>
+                                {arabicMatch && (
+                                  <p dir="rtl" className="font-arabic text-xl leading-loose font-bold text-right">
+                                    {arabicMatch[1]}
+                                  </p>
+                                )}
+                                {narratorMatch && (
+                                  <p className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
+                                    {narratorMatch[1]}
+                                  </p>
+                                )}
+                                {bengaliMatch && (
+                                  <p className="text-sm sm:text-base font-medium leading-relaxed">
+                                    {bengaliMatch[1]}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          const fiqhMatch = part.match(/\[মাসআলা:\s*([^\]]*)\]([\s\S]*?)\[\/মাসআলা\]/);
+                          if (fiqhMatch) {
+                            const header = fiqhMatch[1];
+                            const content = fiqhMatch[2];
+
+                            return (
+                              <div key={pIdx} className={`my-4 p-4 ${themeClasses.bgMuted} border border-[#B85D19] space-y-1.5`}>
+                                <div className="flex items-center justify-between text-xs font-bold text-[#B85D19]">
+                                  <span>ফিকহী হুকুম ও মাসআলা</span>
+                                  <span className="font-mono bg-[#B85D19] text-white px-2 py-0.5">{header}</span>
+                                </div>
+                                <p className="text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-line">
+                                  {content.trim()}
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          if (!part.trim()) return null;
+                          return (
+                            <div key={pIdx} className="space-y-3">
+                              {part
+                                .split('\n\n')
+                                .filter(Boolean)
+                                .map((para, paraIdx) => (
+                                  <p key={paraIdx} className="leading-relaxed whitespace-pre-line">
+                                    {para}
+                                  </p>
+                                ))}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>

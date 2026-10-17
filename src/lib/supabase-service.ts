@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured, DbArticle, DbCategory, DbSection } from
 import { SECTIONS_DATA } from '@/data/sections';
 import { INITIAL_ARTICLES } from '@/data/articles';
 import { Article, CategoryItem, SectionPage } from '@/types';
+import { toBengaliDigits } from './prayer-times';
 
 const LOCAL_STORAGE_ARTICLES_KEY = 'islam_admin_articles_v1';
 const LOCAL_STORAGE_CATEGORIES_KEY = 'islam_admin_categories_v1';
@@ -80,6 +81,60 @@ function saveLocalArticles(list: DbArticle[]) {
     localStorage.setItem(LOCAL_STORAGE_ARTICLES_KEY, JSON.stringify(list));
   } catch (e) {
     console.error('Failed to save to localStorage', e);
+  }
+}
+
+// Convert all default categories from SECTIONS_DATA
+function getSeedCategories(): DbCategory[] {
+  const all: DbCategory[] = [];
+  SECTIONS_DATA.forEach(s => {
+    s.categories.forEach(c => {
+      all.push({
+        id: c.id,
+        slug: c.slug,
+        section_id: s.id,
+        name: c.name,
+        arabic_name: c.arabicName,
+        badge: c.badge,
+        group: c.group,
+        article_count: c.articleCount,
+        short_desc: c.shortDesc,
+        meta_info: c.metaInfo
+      });
+    });
+  });
+  return all;
+}
+
+// Get fallback categories from localStorage or SECTIONS_DATA
+export function getLocalCategories(): DbCategory[] {
+  if (typeof window === 'undefined') {
+    return getSeedCategories();
+  }
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_CATEGORIES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to read categories from localStorage', e);
+  }
+  const defaultList = getSeedCategories();
+  try {
+    localStorage.setItem(LOCAL_STORAGE_CATEGORIES_KEY, JSON.stringify(defaultList));
+  } catch {}
+  return defaultList;
+}
+
+export function saveLocalCategories(list: DbCategory[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_STORAGE_CATEGORIES_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.error('Failed to save categories to localStorage', e);
   }
 }
 
@@ -209,7 +264,172 @@ export async function deleteAdminArticle(articleId: string): Promise<{ success: 
   return { success: true };
 }
 
-// 4. Get Admin Metrics
+// 4. Category Management: Fetch Categories with optional filtering
+export async function fetchAdminCategories(sectionId?: string, query?: string): Promise<DbCategory[]> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      let q = supabase.from('categories').select('*').order('name', { ascending: true });
+      if (sectionId && sectionId !== 'all') {
+        q = q.eq('section_id', sectionId);
+      }
+      if (query && query.trim()) {
+        const needle = query.trim();
+        q = q.or(`name.ilike.%${needle}%,short_desc.ilike.%${needle}%,badge.ilike.%${needle}%`);
+      }
+      const { data, error } = await q;
+      if (!error && data && data.length > 0) {
+        return data as DbCategory[];
+      }
+    } catch (err) {
+      console.warn('Supabase categories fetch failed, falling back to local', err);
+    }
+  }
+
+  // Fallback to localStorage
+  let list = getLocalCategories();
+  if (sectionId && sectionId !== 'all') {
+    list = list.filter(c => c.section_id === sectionId);
+  }
+  if (query && query.trim()) {
+    const needle = query.toLowerCase().trim();
+    list = list.filter(c =>
+      c.name.toLowerCase().includes(needle) ||
+      (c.arabic_name && c.arabic_name.toLowerCase().includes(needle)) ||
+      c.badge.toLowerCase().includes(needle) ||
+      c.short_desc.toLowerCase().includes(needle) ||
+      c.meta_info.toLowerCase().includes(needle)
+    );
+  }
+  return list;
+}
+
+// Fetch single category by ID
+export async function fetchAdminCategoryById(categoryId: string): Promise<DbCategory | null> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase.from('categories').select('*').eq('id', categoryId).single();
+      if (!error && data) {
+        return data as DbCategory;
+      }
+    } catch (err) {
+      console.warn('Supabase fetch category failed, falling back to local', err);
+    }
+  }
+  const local = getLocalCategories();
+  return local.find(c => c.id === categoryId) || null;
+}
+
+// Check how many articles belong to a category (safety guard before delete)
+export async function countArticlesForCategory(categoryId: string): Promise<number> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { count, error } = await supabase
+        .from('articles')
+        .select('*', { count: 'exact', head: true })
+        .eq('category_id', categoryId);
+      if (!error && typeof count === 'number') {
+        return count;
+      }
+    } catch (e) {
+      console.warn('Supabase countArticlesForCategory error:', e);
+    }
+  }
+  const localArticles = getLocalArticles();
+  return localArticles.filter(a => a.category_id === categoryId).length;
+}
+
+// Save or Update Category
+export async function saveAdminCategory(category: DbCategory): Promise<{ success: boolean; error?: string }> {
+  if (!category.id?.trim() || !category.name?.trim() || !category.section_id?.trim()) {
+    return { success: false, error: 'ক্যাটেগরি আইডি, নাম ও মূল বিভাগ প্রদান করা আবশ্যক।' };
+  }
+
+  const cleanCategory: DbCategory = {
+    ...category,
+    id: category.id.trim(),
+    slug: category.slug?.trim() || category.id.trim(),
+    name: category.name.trim(),
+    section_id: category.section_id.trim(),
+    arabic_name: category.arabic_name?.trim() || undefined,
+    badge: category.badge?.trim() || 'সাধারণ',
+    group: category.group?.trim() || 'সাধারণ',
+    article_count: Number(category.article_count) || 0,
+    short_desc: category.short_desc?.trim() || '',
+    meta_info: category.meta_info?.trim() || '',
+    updated_at: new Date().toISOString()
+  };
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('categories').upsert(cleanCategory, { onConflict: 'id' });
+      if (error) {
+        console.error('Supabase save category error:', error);
+        return { success: false, error: error.message };
+      }
+    } catch (err: any) {
+      console.error('Supabase category exception:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  // Update local storage
+  const local = getLocalCategories();
+  const existingIdx = local.findIndex(c => c.id === cleanCategory.id);
+  if (existingIdx >= 0) {
+    local[existingIdx] = cleanCategory;
+  } else {
+    local.unshift({
+      ...cleanCategory,
+      created_at: new Date().toISOString()
+    });
+  }
+  saveLocalCategories(local);
+
+  return { success: true };
+}
+
+// Delete Category with safety guard
+export async function deleteAdminCategory(categoryId: string): Promise<{ success: boolean; error?: string }> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('categories').delete().eq('id', categoryId);
+      if (error) {
+        return { success: false, error: error.message };
+      }
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  const local = getLocalCategories();
+  const filtered = local.filter(c => c.id !== categoryId);
+  saveLocalCategories(filtered);
+  return { success: true };
+}
+
+// 5. Bengali Word Stats & Reading Time Calculator
+export function calculateBengaliStats(text: string): {
+  words: number;
+  chars: number;
+  readTimeMinutes: number;
+  readTimeString: string;
+} {
+  if (!text) {
+    return { words: 0, chars: 0, readTimeMinutes: 1, readTimeString: '১ মিনিট পাঠ' };
+  }
+  const trimmed = text.trim();
+  const words = trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0;
+  const chars = trimmed.length;
+  const minutes = Math.max(1, Math.ceil(words / 180));
+  return {
+    words,
+    chars,
+    readTimeMinutes: minutes,
+    readTimeString: `${toBengaliDigits(minutes)} মিনিট পাঠ`
+  };
+}
+
+// 6. Get Admin Metrics
 export async function getAdminMetrics(): Promise<{
   totalArticles: number;
   publishedCount: number;
@@ -227,10 +447,8 @@ export async function getAdminMetrics(): Promise<{
   const review = articles.filter(a => a.status === 'review').length;
   const totalViews = articles.reduce((acc, curr) => acc + (curr.views_count || 142), 0);
 
-  let totalCategories = 0;
-  SECTIONS_DATA.forEach(s => {
-    totalCategories += s.categories.length;
-  });
+  const categories = await fetchAdminCategories();
+  const totalCategories = categories.length;
 
   return {
     totalArticles: articles.length,
