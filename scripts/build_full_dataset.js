@@ -1122,3 +1122,6 @@ export function getAllCategories(): { section: SectionPage; category: CategoryIt
 fs.writeFileSync(path.join(__dirname, '..', 'src', 'data', 'sections.ts'), fileContent, 'utf8');
 console.log('src/data/sections.ts updated with comprehensive categories! Total sections:', SECTIONS.length);
 SECTIONS.forEach(s => console.log(` - ${s.name} (${s.id}): ${s.categories.length} categories`));
+
+module.exports = { SECTIONS };
+

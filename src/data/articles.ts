@@ -345,7 +345,7 @@ export const INITIAL_ARTICLES: Article[] = [
     title: 'সালাতে খুশু-খুজু অর্জনের বাস্তবসম্মত উপায় ও সুন্নাহসম্মত নামাজের পদ্ধতি',
     subtitle: 'কুরআনের সূরা মুমিনুনের প্রথম বৈশিষ্ট্য খুশু কীভাবে আমাদের প্রাত্যহিক নামাজকে প্রাণবন্ত করে তোলে।',
     sectionId: 'fiqh',
-    categoryId: 'salah-taharah',
+    categoryId: 'nurul-idah',
     author: 'মুফতি যায়েদ বিন হারিস',
     reviewer: 'শাইখ মুহাম্মাদ সাইফুল্লাহ',
     publishedAt: '০৮ অক্টোবর ২০২৬',
