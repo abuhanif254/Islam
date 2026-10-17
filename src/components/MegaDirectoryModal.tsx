@@ -13,7 +13,7 @@ import {
   Layers,
   ArrowUpRight,
   Sparkles,
-  Database
+  Clock
 } from 'lucide-react';
 import { SECTIONS_DATA } from '@/data/sections';
 import { CategoryItem, SectionPage } from '@/types';
@@ -91,12 +91,12 @@ export default function MegaDirectoryModal({
 
           <div className="flex items-center gap-3">
             <Link
-              href="/admin/"
+              href="/prayer-times/"
               onClick={onClose}
               className="px-3.5 py-2 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs font-bold border border-[#176B52] transition-colors inline-flex items-center gap-1.5"
             >
-              <Database className="w-3.5 h-3.5" />
-              <span>সেন্ট্রাল অ্যাডমিন</span>
+              <Clock className="w-3.5 h-3.5" />
+              <span>সালাতের সময়সূচি</span>
             </Link>
 
             <button

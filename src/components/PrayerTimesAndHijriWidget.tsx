@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Clock,
   Calendar,
@@ -18,7 +19,8 @@ import {
   Moon,
   Sunset,
   Sunrise,
-  ShieldCheck
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 import {
   calculatePrayerTimes,
@@ -370,6 +372,25 @@ export default function PrayerTimesAndHijriWidget({
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* DISTRICT HUB LINK BAR */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
+              <Link
+                href={`/prayer-times/${selectedCity}/`}
+                className="text-[#0B4F3B] dark:text-[#4CC39A] font-bold hover:underline inline-flex items-center gap-1.5"
+              >
+                <span>{prayerSchedule.city.nameBn} জেলার পূর্ণাঙ্গ মাসিক সময়সূচি ও হিজরি ক্যালেন্ডার</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
+
+              <Link
+                href="/prayer-times/"
+                className="text-[#B85D19] font-bold hover:underline inline-flex items-center gap-1.5 ml-auto"
+              >
+                <span>বাংলাদেশের সকল ৬৪ জেলার সালাতের সময়সূচি হাব</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
         </div>

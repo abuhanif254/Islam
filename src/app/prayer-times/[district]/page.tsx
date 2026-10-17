@@ -13,6 +13,7 @@ import { calculatePrayerTimes, toBengaliDigits, DayPrayerSchedule } from '@/lib/
 import { getHijriDate } from '@/lib/hijri-calendar';
 import PrayerTimesAndHijriWidget from '@/components/PrayerTimesAndHijriWidget';
 import IslamicGeometricEmblem from '@/components/IslamicGeometricEmblem';
+import SiteFooter from '@/components/SiteFooter';
 import {
   MapPin,
   Clock,
@@ -380,6 +381,9 @@ export default async function DistrictPrayerTimesPage({
           </div>
         </section>
       </main>
+
+      {/* EDITORIAL SITE FOOTER */}
+      <SiteFooter />
     </div>
   );
 }

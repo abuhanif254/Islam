@@ -10,6 +10,7 @@ import {
 } from '@/lib/seo';
 import PrayerTimesAndHijriWidget from '@/components/PrayerTimesAndHijriWidget';
 import IslamicGeometricEmblem from '@/components/IslamicGeometricEmblem';
+import SiteFooter from '@/components/SiteFooter';
 import { MapPin, Clock, Calendar, CheckCircle2, ChevronRight, Compass } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -235,6 +236,9 @@ export default function PrayerTimesHubPage() {
           </div>
         </section>
       </main>
+
+      {/* EDITORIAL SITE FOOTER */}
+      <SiteFooter />
     </div>
   );
 }
