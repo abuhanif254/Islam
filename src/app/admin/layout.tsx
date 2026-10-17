@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   FileText,
@@ -12,17 +12,14 @@ import {
   ExternalLink,
   Menu,
   X,
-  Search,
-  Bell,
-  CheckCircle2,
-  AlertCircle,
-  Layers,
-  ChevronRight,
   ShieldCheck,
+  LogOut,
+  RefreshCw,
   UserCheck
 } from 'lucide-react';
 import { IslamicGeometricEmblem } from '@/components/IslamicGeometricEmblem';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { getCurrentAdminSession, signOutAdmin, AdminUserSession } from '@/lib/supabase-auth';
 
 export default function AdminLayout({
   children,
@@ -30,43 +27,99 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLiveDb, setIsLiveDb] = useState(false);
+  const [session, setSession] = useState<AdminUserSession | null>(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  // If on login page, skip layout shell
+  const isLoginPage = pathname === '/admin/login' || pathname === '/admin/login/';
 
   useEffect(() => {
     setIsLiveDb(isSupabaseConfigured());
-  }, []);
+
+    if (isLoginPage) {
+      setAuthChecking(false);
+      return;
+    }
+
+    getCurrentAdminSession().then(s => {
+      setSession(s);
+      setAuthChecking(false);
+      if (!s) {
+        router.push('/admin/login');
+      }
+    });
+  }, [pathname, isLoginPage, router]);
+
+  const handleLogout = async () => {
+    await signOutAdmin();
+    setSession(null);
+    router.push('/admin/login');
+  };
+
+  // Login page gets a clean, full-screen wrapper
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  // Loading gate while verifying credentials
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <IslamicGeometricEmblem
+          size={52}
+          primaryColor="#0B4F3B"
+          accentColor="#B85D19"
+          surfaceColor="#FAF8F5"
+        />
+        <div className="mt-4 font-editorial text-lg text-[#141615] font-bold">
+          অ্যাডমিন প্রমাণীকরণ ও পারমিশন যাচাই করা হচ্ছে...
+        </div>
+        <div className="text-xs text-[#6E7571] mt-1 font-mono">
+          VERIFYING SUPABASE AUTHENTICATION SESSION
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated redirect safeguard
+  if (!session) {
+    return null;
+  }
 
   const navItems = [
     {
       name: 'ড্যাশবোর্ড',
       href: '/admin',
       icon: LayoutDashboard,
-      active: pathname === '/admin',
+      active: pathname === '/admin' || pathname === '/admin/',
     },
     {
       name: 'সকল প্রবন্ধ',
       href: '/admin/articles',
       icon: FileText,
-      active: pathname === '/admin/articles',
+      active: pathname.startsWith('/admin/articles') && pathname !== '/admin/articles/new',
     },
     {
       name: 'নতুন প্রবন্ধ লিখুন',
       href: '/admin/articles/new',
       icon: PlusCircle,
-      active: pathname === '/admin/articles/new',
+      active: pathname === '/admin/articles/new' || pathname === '/admin/articles/new/',
     },
     {
       name: 'ক্যাটেগরি ও বিভাগ',
       href: '/admin/categories',
       icon: FolderTree,
-      active: pathname === '/admin/categories',
+      active: pathname === '/admin/categories' || pathname === '/admin/categories/',
     },
     {
       name: 'Supabase ডাটাবেজ',
       href: '/admin/database',
       icon: Database,
-      active: pathname === '/admin/database',
+      active: pathname === '/admin/database' || pathname === '/admin/database/',
     },
   ];
 
@@ -106,7 +159,7 @@ export default function AdminLayout({
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Supabase Status Pill */}
             <Link
               href="/admin/database"
@@ -142,10 +195,23 @@ export default function AdminLayout({
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
 
+            {/* User Session Info & Logout */}
             <div className="flex items-center gap-2 pl-2 border-l border-[#2D3330]">
-              <div className="w-8 h-8 rounded-full bg-[#0B4F3B] text-white flex items-center justify-center font-bold text-xs border border-[#B85D19]">
-                মু
+              <div
+                className="w-8 h-8 rounded-full bg-[#0B4F3B] text-white flex items-center justify-center font-bold text-xs border border-[#B85D19]"
+                title={session.email}
+              >
+                {session.email.charAt(0).toUpperCase()}
               </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="p-1.5 text-[#C2C8C5] hover:text-[#D9381E] hover:bg-[#26332F] transition-colors"
+                title="লগআউট করুন"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -197,7 +263,7 @@ export default function AdminLayout({
                     <span>Supabase DB</span>
                   </span>
                   <span
-                    className={`text-[10px] font-bold px-1.5 py-0.2 border ${
+                    className={`text-[10px] font-bold px-1.5 py-0.5 border ${
                       isLiveDb
                         ? 'bg-[#0B4F3B] text-white border-[#0B4F3B]'
                         : 'bg-[#B85D19] text-white border-[#B85D19]'
@@ -221,13 +287,32 @@ export default function AdminLayout({
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[#DCD7CD] space-y-2">
-            <div className="flex items-center gap-2 px-2 text-xs text-[#6E7571]">
-              <ShieldCheck className="w-4 h-4 text-[#0B4F3B]" />
-              <span>শরীয়াহ তাহকীক ও সম্পাদনা প্যানেল</span>
+          {/* USER PROFILE & LOGOUT FOOTER */}
+          <div className="pt-4 border-t border-[#DCD7CD] space-y-3">
+            <div className="p-2.5 bg-[#FAF8F5] border border-[#DCD7CD]">
+              <div className="text-[10px] font-mono font-bold text-[#B85D19] uppercase tracking-wider">
+                {session.role === 'superadmin' ? 'সুপার এডমিন' : 'তাহকীক পরিষদ'}
+              </div>
+              <div className="text-xs font-bold text-[#141615] truncate mt-0.5" title={session.email}>
+                {session.email}
+              </div>
+              <div className="text-[10px] text-[#6E7571] truncate">
+                {session.name}
+              </div>
             </div>
-            <div className="text-[11px] text-[#8A9490] px-2">
-              সংস্করণ ২.৪ • ২০২৬
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full py-2 px-3 bg-[#FBEAE8] hover:bg-[#F7D4CF] text-[#D9381E] border border-[#D9381E] text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>লগআউট করুন</span>
+            </button>
+
+            <div className="flex items-center gap-2 px-1 text-[11px] text-[#6E7571]">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#0B4F3B]" />
+              <span>শরীয়াহ তাহকীক ও সম্পাদনা প্যানেল</span>
             </div>
           </div>
         </aside>
