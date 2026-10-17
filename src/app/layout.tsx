@@ -1,6 +1,14 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { SITE_NAME, SITE_URL, DEFAULT_DESCRIPTION, getWebsiteJsonLd, getOrganizationJsonLd } from '@/lib/seo';
+import {
+  SITE_NAME,
+  SITE_URL,
+  DEFAULT_DESCRIPTION,
+  GEO_CONSTANTS,
+  PHONETIC_SEARCH_KEYWORDS,
+  getWebsiteJsonLd,
+  getOrganizationJsonLd,
+} from '@/lib/seo';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -25,9 +33,12 @@ export const metadata: Metadata = {
     'বাংলা তাফসীর',
     'সহীহ বুখারী',
     'ইসলামিক জ্ঞানকোষ',
+    'সালাতের সময়সূচি',
+    'হিজরি ক্যালেন্ডার',
     'Islam Bangla Portal',
     'Quran Tafsir Bengali',
     'Hadith Bengali',
+    ...PHONETIC_SEARCH_KEYWORDS,
   ],
   authors: [{ name: 'ইসলাম সম্পাদকীয় পর্ষদ' }],
   creator: 'ইসলাম ডিজিটাল ম্যাগাজিন ও বিশ্বকোষ',
@@ -38,7 +49,11 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: SITE_URL,
+    canonical: `${SITE_URL}/`,
+    languages: {
+      'bn-BD': `${SITE_URL}/`,
+      'bn-IN': `${SITE_URL}/`,
+    },
   },
   openGraph: {
     title: SITE_NAME,
@@ -46,6 +61,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: 'ইসলাম',
     locale: 'bn_BD',
+    alternateLocale: ['bn_IN', 'ar', 'en_US'],
     type: 'website',
   },
   twitter: {
@@ -63,6 +79,12 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
+  },
+  other: {
+    'geo.region': GEO_CONSTANTS.region,
+    'geo.placename': GEO_CONSTANTS.placename,
+    'geo.position': GEO_CONSTANTS.position,
+    'ICBM': GEO_CONSTANTS.icbm,
   },
   manifest: '/site.webmanifest',
   icons: {
@@ -84,6 +106,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="help" href="/llms.txt" type="text/markdown" title="LLMs Context Guide" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}

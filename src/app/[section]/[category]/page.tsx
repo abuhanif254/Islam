@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import IslamPortal from '@/components/IslamPortal';
 import { SECTIONS_DATA, getSectionBySlug, getCategoryBySlug } from '@/data/sections';
-import { SITE_URL, getBreadcrumbJsonLd } from '@/lib/seo';
+import { SITE_URL, GEO_CONSTANTS, getBreadcrumbJsonLd, getCollectionPageJsonLd } from '@/lib/seo';
 
 export function generateStaticParams() {
   const params: { section: string; category: string }[] = [];
@@ -32,20 +32,36 @@ export async function generateMetadata({
   }
 
   const { section, category } = match;
+  const canonicalUrl = `${SITE_URL}/${section.slug}/${category.slug}/`;
 
   return {
     title: `${category.name} (${category.badge}) | ${section.name}`,
     description: `${category.shortDesc} ${category.metaInfo} — ${section.tagline}`,
+    keywords: [
+      category.name,
+      category.badge,
+      category.group,
+      section.name,
+      'ইসলামিক ক্যাটেগরি',
+      'বাংলা প্রবন্ধ তালিকা',
+    ],
     alternates: {
-      canonical: `${SITE_URL}/${section.slug}/${category.slug}/`,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title: `${category.name} | ${section.name} — ইসলাম`,
       description: category.shortDesc,
-      url: `${SITE_URL}/${section.slug}/${category.slug}/`,
+      url: canonicalUrl,
       type: 'website',
       locale: 'bn_BD',
+      alternateLocale: ['bn_IN', 'ar', 'en_US'],
       siteName: 'ইসলাম',
+    },
+    other: {
+      'geo.region': GEO_CONSTANTS.region,
+      'geo.placename': GEO_CONSTANTS.placename,
+      'geo.position': GEO_CONSTANTS.position,
+      'ICBM': GEO_CONSTANTS.icbm,
     },
   };
 }
@@ -70,11 +86,22 @@ export default async function CategoryRoutePage({
     { name: category.name, url: `${SITE_URL}/${section.slug}/${category.slug}/` },
   ]);
 
+  const collectionJsonLd = getCollectionPageJsonLd(
+    `${category.name} — ${section.name}`,
+    category.shortDesc,
+    `${SITE_URL}/${section.slug}/${category.slug}/`,
+    category.articleCount
+  );
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
       />
       <IslamPortal
         initialSectionSlug={section.slug}
