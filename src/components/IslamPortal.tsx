@@ -11,8 +11,6 @@ import {
   Layers,
   Sparkles,
   Compass,
-  Code2,
-  PlusCircle,
   ArrowLeft,
   ArrowUpRight,
   Menu,
@@ -109,13 +107,6 @@ export default function IslamPortal({
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // New Article Draft Form State
-  const [draftTitle, setDraftTitle] = useState<string>('');
-  const [draftSubtitle, setDraftSubtitle] = useState<string>('');
-  const [draftArabic, setDraftArabic] = useState<string>('');
-  const [draftCitationBn, setDraftCitationBn] = useState<string>('');
-  const [draftRef, setDraftRef] = useState<string>('');
-  const [draftBody, setDraftBody] = useState<string>('');
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -349,61 +340,6 @@ export default function IslamPortal({
     setTimeout(() => setCopiedSlug(null), 2500);
   };
 
-  const handlePublishDraft = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!draftTitle.trim() || !draftBody.trim()) {
-      triggerToast('অনুগ্রহ করে প্রবন্ধের শিরোনাম ও মূল বক্তব্য লিখুন');
-      return;
-    }
-    const newId = `custom-${Date.now()}`;
-    const newArt: Article = {
-      id: newId,
-      slug: `${activeCategory.slug}-article-${articles.length + 1}`,
-      title: draftTitle.trim(),
-      subtitle:
-        draftSubtitle.trim() ||
-        `${activeSection.name} বিভাগের ${activeCategory.name} ক্যাটেগরির অধীনে প্রকাশিত প্রবন্ধ।`,
-      sectionId: activeSection.id,
-      categoryId: activeCategory.id,
-      author: 'সম্পাদকীয় ডেস্ক (ইসলাম)',
-      reviewer: 'শরীয়াহ সম্পাদনা পরিষদ',
-      publishedAt: '১৭ অক্টোবর ২০২৬ (সদ্য প্রকাশিত)',
-      readTime: '৫ মিনিট পাঠ',
-      isLead: false,
-      tags: [activeSection.name, activeCategory.name, 'নতুন সংযোজন'],
-      citation: {
-        arabic: draftArabic.trim() || activeCategory.arabicName || 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-        bengali:
-          draftCitationBn.trim() ||
-          'পরম করুণাময় ও অসীম দয়ালু আল্লাহর নামে শুরু করছি।',
-        reference: draftRef.trim() || `${activeCategory.name} • প্রামাণ্য উদ্ধৃতি`
-      },
-      summary: draftBody.trim().slice(0, 180),
-      keyTakeaways: [
-        `${activeCategory.name} ক্যাটেগরির অধীনে সংযোজিত নতুন গবেষণাধর্মী নিবন্ধ।`,
-        'কুরআন ও সুন্নাহর দলিলভিত্তিক উপস্থাপনা।'
-      ],
-      contentSections: [
-        {
-          heading: '১. মূল আলোচনা ও বিশ্লেষণ',
-          body: draftBody.trim()
-        }
-      ],
-      references: [draftRef.trim() || 'আল-কুরআনুল কারীম ও সিহাহ সিত্তাহ']
-    };
-
-    setArticles((prev) => [newArt, ...prev]);
-    setSelectedArticleId(newId);
-    setDraftTitle('');
-    setDraftSubtitle('');
-    setDraftArabic('');
-    setDraftCitationBn('');
-    setDraftRef('');
-    setDraftBody('');
-    setViewMode('reader');
-    triggerToast(`"${activeCategory.name}" ক্যাটেগরিতে আপনার নতুন আর্টিকেল প্রকাশিত হয়েছে!`);
-  };
-
   const themeClasses = {
     paper: {
       bgMain: 'bg-[#FAF8F5]',
@@ -590,21 +526,6 @@ export default function IslamPortal({
               <Bookmark className="w-3.5 h-3.5 text-[#E8A86B]" />
               <span>সংরক্ষিত ({bookmarkedIds.length})</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setViewMode(viewMode === 'nextjs_code' ? 'magazine' : 'nextjs_code')
-              }
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border transition-colors ${
-                viewMode === 'nextjs_code'
-                  ? 'bg-[#B85D19] text-white border-[#F5EBE1]'
-                  : 'bg-[#FAF8F5] text-[#0B4F3B] border-[#FAF8F5] hover:bg-[#E6F0EC]'
-              }`}
-            >
-              <Code2 className="w-3.5 h-3.5" />
-              <span>Next.js + SEO কোড</span>
-            </button>
           </div>
         </div>
       </div>
@@ -724,26 +645,13 @@ export default function IslamPortal({
               </div>
 
               <Link
-                href="/admin/"
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold bg-[#FAF8F5] dark:bg-[#111615] hover:bg-[#F2EFE9] text-[#0B4F3B] dark:text-[#4CC39A] border-2 border-[#141615] transition-colors shrink-0"
-                title="সেন্ট্রাল অ্যাডমিন কন্ট্রোল প্যানেল"
+                href="/prayer-times/"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs sm:text-sm font-bold bg-[#FAF8F5] dark:bg-[#111615] hover:bg-[#F2EFE9] text-[#0B4F3B] dark:text-[#4CC39A] border-2 border-[#141615] transition-colors shrink-0 shadow-[2px_2px_0px_#141615]"
+                title="বাংলাদেশের ৬৪ জেলার সালাতের সময়সূচি ও হিজরি ক্যালেন্ডার"
               >
-                <Database className="w-3.5 h-3.5 text-[#B85D19]" />
-                <span className="hidden xl:inline">অ্যাডমিন</span>
+                <Calendar className="w-4 h-4 text-[#B85D19]" />
+                <span className="hidden sm:inline">সালাতের সময়সূচি</span>
               </Link>
-
-              <button
-                type="button"
-                onClick={() => setViewMode(viewMode === 'writer' ? 'magazine' : 'writer')}
-                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold border-2 transition-colors shrink-0 ${
-                  viewMode === 'writer'
-                    ? 'bg-[#B85D19] text-white border-[#141615]'
-                    : 'bg-[#0B4F3B] text-white border-[#141615] hover:bg-[#083B2C]'
-                }`}
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>নতুন আর্টিকেল লিখুন</span>
-              </button>
             </div>
           </div>
         </div>
@@ -842,8 +750,8 @@ export default function IslamPortal({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-[#B85D19] text-white text-xs font-bold">
-              URL: /{activeSection.slug}/{activeCategory.slug}
+            <span className="px-2.5 py-0.5 bg-[#0B4F3B] text-white text-xs font-bold border border-[#083B2C]">
+              {activeCategory.articleCount}টি প্রামাণ্য প্রবন্ধ
             </span>
           </div>
         </div>
@@ -1032,17 +940,6 @@ export default function IslamPortal({
                     }`}
                   >
                     আর্টিকেল রিডার
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('writer')}
-                    className={`px-3 py-1 text-xs font-bold border-l ${themeClasses.borderStrong} ${
-                      viewMode === 'writer'
-                        ? 'bg-[#B85D19] text-white'
-                        : `${themeClasses.bgSurface} ${themeClasses.textPrimary}`
-                    }`}
-                  >
-                    লিখুন
                   </button>
                 </div>
               </div>
@@ -1475,202 +1372,6 @@ export default function IslamPortal({
                 </div>
               </article>
             )}
-
-            {viewMode === 'writer' && (
-              <div className={`${themeClasses.bgSurface} border-2 ${themeClasses.borderStrong} p-5 sm:p-7 space-y-5`}>
-                <div className="border-b-2 border-[#141615] pb-3 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-editorial text-xl sm:text-2xl font-extrabold text-[#0B4F3B]">
-                      ক্যাটেগরি অনুযায়ী নতুন আর্টিকেল লিখুন (CMS এডিটর)
-                    </h3>
-                    <p className={`text-xs sm:text-sm mt-0.5 ${themeClasses.textSecondary}`}>
-                      নির্বাচিত পেইজ: <strong>{activeSection.name}</strong> → ক্যাটেগরি:{' '}
-                      <strong>{activeCategory.name}</strong>
-                    </p>
-                  </div>
-                  <span className="px-2.5 py-1 bg-[#B85D19] text-white text-xs font-bold">
-                    লাইভ পাবলিশ প্রিভিউ
-                  </span>
-                </div>
-
-                <form onSubmit={handlePublishDraft} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase mb-1">
-                      প্রবন্ধের শিরোনাম (SEO Title / H1) *
-                    </label>
-                    <input
-                      type="text"
-                      value={draftTitle}
-                      onChange={(e) => setDraftTitle(e.target.value)}
-                      placeholder={`যেমন: ${activeCategory.name}-এর তাৎপর্য ও জীবনঘনিষ্ঠ শিক্ষা`}
-                      className={`w-full px-3.5 py-2.5 text-sm ${themeClasses.bgMuted} border ${themeClasses.borderStrong} focus:outline-none focus:border-[#0B4F3B]`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase mb-1">
-                      উপ-শিরোনাম / সারসংক্ষেপ (Meta Description)
-                    </label>
-                    <input
-                      type="text"
-                      value={draftSubtitle}
-                      onChange={(e) => setDraftSubtitle(e.target.value)}
-                      placeholder="সার্চ ইঞ্জিন (SEO) ও ম্যাগাজিন কার্ডের জন্য ২ লাইনের সারসংক্ষেপ"
-                      className={`w-full px-3.5 py-2 text-sm ${themeClasses.bgMuted} border ${themeClasses.borderSubtle} focus:outline-none focus:border-[#0B4F3B]`}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase mb-1">
-                        আরবি আয়াত বা হাদিসের অংশ (ঐচ্ছিক)
-                      </label>
-                      <input
-                        type="text"
-                        dir="rtl"
-                        value={draftArabic}
-                        onChange={(e) => setDraftArabic(e.target.value)}
-                        placeholder="بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"
-                        className={`w-full px-3.5 py-2 text-base font-arabic ${themeClasses.bgMuted} border ${themeClasses.borderSubtle}`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold uppercase mb-1">
-                        সূরা বা হাদিসের রেফারেন্স নম্বর
-                      </label>
-                      <input
-                        type="text"
-                        value={draftRef}
-                        onChange={(e) => setDraftRef(e.target.value)}
-                        placeholder="যেমন: সহীহ বুখারী, হাদিস নং ১"
-                        className={`w-full px-3.5 py-2 text-sm ${themeClasses.bgMuted} border ${themeClasses.borderSubtle}`}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase mb-1">
-                      উদ্ধৃতির বাংলা অনুবাদ
-                    </label>
-                    <input
-                      type="text"
-                      value={draftCitationBn}
-                      onChange={(e) => setDraftCitationBn(e.target.value)}
-                      placeholder="আয়াত বা হাদিসের সরল বাংলা অনুবাদ"
-                      className={`w-full px-3.5 py-2 text-sm ${themeClasses.bgMuted} border ${themeClasses.borderSubtle}`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase mb-1">
-                      মূল প্রবন্ধের বিস্তারিত বক্তব্য *
-                    </label>
-                    <textarea
-                      rows={6}
-                      value={draftBody}
-                      onChange={(e) => setDraftBody(e.target.value)}
-                      placeholder={`${activeCategory.name} ক্যাটেগরির অধীনে আপনার গবেষণাধর্মী আর্টিকেল এখানে লিখুন`}
-                      className={`w-full p-3.5 text-sm ${themeClasses.bgMuted} border ${themeClasses.borderStrong} focus:outline-none focus:border-[#0B4F3B]`}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('magazine')}
-                      className={`px-4 py-2 text-xs font-bold border ${themeClasses.borderStrong}`}
-                    >
-                      বাতিল করুন
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2.5 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs sm:text-sm font-bold border border-[#141615]"
-                    >
-                      এই ক্যাটেগরিতে আর্টিকেল প্রকাশ করুন
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {viewMode === 'nextjs_code' && (
-              <div className={`${themeClasses.bgSurface} border-2 ${themeClasses.borderStrong} p-5 sm:p-7 space-y-5`}>
-                <div className="border-b-2 border-[#141615] pb-3 flex items-center justify-between">
-                  <div>
-                    <span className="px-2 py-0.5 bg-[#0B4F3B] text-white text-xs font-bold">
-                      DEVELOPER ARCHITECTURE
-                    </span>
-                    <h3 className="font-editorial text-xl sm:text-2xl font-extrabold mt-1">
-                      Next.js 15 (App Router) + TypeScript + Cloudflare Pages SEO স্ট্রাকচার
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('magazine')}
-                    className="px-3 py-1 bg-[#141615] text-white text-xs font-bold"
-                  >
-                    ম্যাগাজিনে ফিরুন
-                  </button>
-                </div>
-
-                <p className={`text-sm ${themeClasses.textSecondary}`}>
-                  আপনার <strong>“ইসলাম”</strong> ওয়েবসাইটটি গুগল সার্চে সর্বোচ্চ র‍্যাংক (SEO) পেতে এবং Cloudflare Pages-এ আল্ট্রা-ফাস্ট এজ (Edge/SSG) রেন্ডারিংয়ের জন্য নিচের ফোল্ডার আর্কিটেকচার ও TypeScript কোড ব্যবহার করবেন:
-                </p>
-
-                <div className="bg-[#141615] text-[#FAF8F5] p-4 font-mono text-xs overflow-x-auto border-l-4 border-[#B85D19]">
-                  <pre>{`// ১. প্রজেক্ট ফোল্ডার স্ট্রাকচার (Next.js 15 App Router)
-islam-portal/
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx                      // গ্লোবাল হেডার + বাম থেকে ডানে পেইজ নেভবার
-│   │   ├── page.tsx                        // ম্যাগাজিন হোমপেইজ
-│   │   ├── sitemap.ts                      // ডাইনামিক XML Sitemap (SEO-এর জন্য অপরিহার্য)
-│   │   ├── robots.ts                       // সার্চ ইঞ্জিন ক্রলার রুলস
-│   │   └── [section]/                      // যেমন: /allah, /angels, /quran, /hadith, /prophets, /sahabi
-│   │       ├── layout.tsx                  // বাম পাশের লম্বা ক্যাটেগরি সাইডবার (Left Sidebar)
-│   │       ├── page.tsx                    // সেকশন ওভারভিউ পেইজ
-│   │       └── [category]/                 // যেমন: /quran/surah-fatiha, /sahabi/abu-bakr-ra
-│   │           ├── page.tsx                // ক্যাটেগরি অনুযায়ী আর্টিকেলের ম্যাগাজিন গ্রিড
-│   │           └── [slug]/
-│   │               └── page.tsx            // পূর্ণাঙ্গ আর্টিকেল রিডার + JSON-LD Article Schema
-│   ├── components/
-│   │   ├── HeaderMasthead.tsx
-│   │   ├── HorizontalSectionNav.tsx
-│   │   └── CategoryLeftSidebar.tsx
-│   └── data/
-│       └── sections.ts`}</pre>
-                </div>
-
-                <div className="bg-[#141615] text-[#FAF8F5] p-4 font-mono text-xs overflow-x-auto border-l-4 border-[#0B4F3B]">
-                  <pre>{`// ২. SEO Metadata ও JSON-LD Schema (src/app/[section]/[category]/[slug]/page.tsx)
-import type { Metadata } from 'next';
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ section: string; category: string; slug: string }>;
-}): Promise<Metadata> {
-  const { section, category, slug } = await params;
-  const article = await getArticleBySlug(section, category, slug);
-
-  return {
-    title: \`\${article.title} | ইসলাম — \${article.categoryName}\`,
-    description: article.subtitle,
-    alternates: {
-      canonical: \`https://islam.org.bd/\${section}/\${category}/\${slug}\`,
-    },
-    openGraph: {
-      title: article.title,
-      description: article.subtitle,
-      type: 'article',
-      locale: 'bn_BD',
-      siteName: 'ইসলাম',
-    },
-  };
-}`}</pre>
-                </div>
-              </div>
-            )}
           </section>
 
           {/* RIGHT 3 COLUMNS: MAGAZINE PORTAL DIGEST, DAILY VERSE & TRENDING */}
@@ -1884,7 +1585,7 @@ export async function generateMetadata({
 
             <div className="md:col-span-4 space-y-2">
               <h4 className="font-editorial text-sm font-bold uppercase tracking-wider text-[#E8A86B]">
-                প্রধান বিভাগসমূহ (এক লাইনের পেইজ সূচি)
+                প্রধান বিভাগসমূহ
               </h4>
               <div className="grid grid-cols-2 gap-1.5 text-sm">
                 {SECTIONS_DATA.map((sec) => (
@@ -1892,35 +1593,72 @@ export async function generateMetadata({
                     key={sec.id}
                     type="button"
                     onClick={() => handleSelectSection(sec)}
-                    className="text-left text-[#C2C8C5] hover:text-white py-0.5"
+                    className="text-left text-[#C2C8C5] hover:text-white py-0.5 transition-colors"
                   >
-                    → {sec.name} ({sec.categories.length})
+                    → {sec.name}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="md:col-span-3 space-y-2">
+            <div className="md:col-span-3 space-y-2.5">
               <h4 className="font-editorial text-sm font-bold uppercase tracking-wider text-[#E8A86B]">
-                টেকনোলজি ও ডেপ্লয়মেন্ট
+                প্রয়োজনীয় সেবা ও লিংক
               </h4>
-              <p className="text-xs text-[#C2C8C5] leading-relaxed">
-                Next.js (App Router) + TypeScript ও Tailwind CSS দিয়ে নির্মিত এবং Cloudflare Pages Edge Network-এর জন্য পূর্ণাঙ্গ SEO অপ্টিমাইজড।
-              </p>
-              <button
-                type="button"
-                onClick={() => setViewMode('nextjs_code')}
-                className="mt-2 px-3.5 py-2 bg-[#0B4F3B] text-white text-xs font-bold border border-[#B85D19] inline-flex items-center gap-1.5"
-              >
-                <Code2 className="w-3.5 h-3.5" />
-                <span>Next.js SEO কোড দেখুন</span>
-              </button>
+              <ul className="space-y-1.5 text-xs text-[#C2C8C5]">
+                <li>
+                  <Link
+                    href="/prayer-times/"
+                    className="hover:text-white flex items-center gap-1.5 transition-colors"
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-[#B85D19]" />
+                    <span>সালাতের সময়সূচি (৬৪ জেলা)</span>
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setDirectoryModalOpen(true)}
+                    className="hover:text-white flex items-center gap-1.5 transition-colors text-left"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-[#B85D19]" />
+                    <span>সকল বিভাগ ও ক্যাটেগরি ডিরেক্টরি</span>
+                  </button>
+                </li>
+                <li>
+                  <Link
+                    href="/quran/"
+                    className="hover:text-white flex items-center gap-1.5 transition-colors"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-[#B85D19]" />
+                    <span>পবিত্র কুরআনুল কারীম ও তাফসীর</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/hadith/"
+                    className="hover:text-white flex items-center gap-1.5 transition-colors"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#B85D19]" />
+                    <span>সহীহ হাদিস শাস্ত্র ও তাহকীক</span>
+                  </Link>
+                </li>
+              </ul>
             </div>
           </div>
 
-          <div className="pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-[#8A9490]">
-            <span>© ২০২৬ ইসলাম (Islam Portal) • সর্বস্বত্ব সংরক্ষিত।</span>
-            <span>সলিড এডিটোরিয়াল কালার সিস্টেম • জিরো গ্রেডিয়েন্ট • আন্তর্জাতিক ম্যাগাজিন লেআউট</span>
+          <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-[#8A9490]">
+            <span>© ২০২৬ ইসলাম পোর্টাল (islam.org.bd) • সর্বস্বত্ব সংরক্ষিত।</span>
+            <div className="flex items-center gap-4">
+              <span>পবিত্র কুরআন ও সহীহ সুন্নাহর প্রামাণ্য প্রকাশনা</span>
+              <span>•</span>
+              <Link
+                href="/admin/login/"
+                className="hover:text-white transition-colors"
+              >
+                অ্যাডমিন লগইন
+              </Link>
+            </div>
           </div>
         </div>
       </footer>
