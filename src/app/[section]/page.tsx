@@ -47,6 +47,21 @@ export async function generateMetadata({
       locale: 'bn_BD',
       alternateLocale: ['bn_IN', 'ar', 'en_US'],
       siteName: 'ইসলাম',
+      images: [
+        {
+          url: `${SITE_URL}/og/${section.slug}.png`,
+          width: 1200,
+          height: 630,
+          alt: `${section.name} (${section.arabicTitle}) | ইসলাম`,
+          type: 'image/png',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${section.name} (${section.arabicTitle}) | ইসলাম`,
+      description: section.tagline,
+      images: [`${SITE_URL}/og/${section.slug}.png`],
     },
     other: {
       'geo.region': GEO_CONSTANTS.region,

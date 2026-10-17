@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/allah.png`,
+        width: 1200,
+        height: 630,
+        alt: 'আল্লাহ (الله جل جلاله) — তাওহীদ ও আসমাউল হুসনা | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'আল্লাহ (الله جل جلاله) — তাওহীদ ও আসমাউল হুসনা | ইসলাম',
+    description: 'তাওহীদ, আসমাউল হুসনা (৯৯টি গুণবাচক নাম), সিফাত ও বিশুদ্ধ আকীদার প্রামাণ্য বিশ্বকোষ।',
+    images: [`${SITE_URL}/og/allah.png`],
   },
   keywords: [
     'আল্লাহ',
@@ -45,6 +60,7 @@ export default function DedicatedAllahPage() {
     name: 'আল্লাহ — তাওহীদ ও আসমাউল হুসনা বিশ্বকোষ',
     description: section.description,
     url: `${SITE_URL}/allah/`,
+    image: `${SITE_URL}/og/allah.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

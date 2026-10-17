@@ -16,27 +16,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 1.0,
   };
 
-  // 2. All 9 Primary Section pages + Dedicated Aliases (feresta, nabi)
-  const sectionEntries: MetadataRoute.Sitemap = [
-    ...SECTIONS_DATA.map((section) => ({
-      url: `${SITE_URL}/${section.slug}/`,
-      lastModified: lastModDate,
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    })),
-    {
-      url: `${SITE_URL}/feresta/`,
-      lastModified: lastModDate,
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/nabi/`,
-      lastModified: lastModDate,
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    },
-  ];
+  // 2. All 9 Primary Canonical Section pages
+  const sectionEntries: MetadataRoute.Sitemap = SECTIONS_DATA.map((section) => ({
+    url: `${SITE_URL}/${section.slug}/`,
+    lastModified: lastModDate,
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }));
 
   // 3. All 242 Specialized Category pages
   const categoryEntries: MetadataRoute.Sitemap = [];

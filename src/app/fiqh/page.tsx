@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/fiqh.png`,
+        width: 1200,
+        height: 630,
+        alt: 'ফিকহ ও জীবন (الفقه والحياة) — প্রামাণ্য বিধান | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ফিকহ ও জীবন (الفقه والحياة) — প্রামাণ্য বিধান | ইসলাম',
+    description: 'সালাত, তাহরাত, হালাল অর্থনীতি ও পারিবারিক জীবনের শরীয়াহ নির্দেশিকা।',
+    images: [`${SITE_URL}/og/fiqh.png`],
   },
   keywords: [
     'ফিকহ',
@@ -45,6 +60,7 @@ export default function DedicatedFiqhPage() {
     name: 'ফিকহ ও জীবন — প্রামাণ্য বিধান ও সমকালীন সমাধান বিশ্বকোষ',
     description: section.description,
     url: `${SITE_URL}/fiqh/`,
+    image: `${SITE_URL}/og/fiqh.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

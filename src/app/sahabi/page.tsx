@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/sahabi.png`,
+        width: 1200,
+        height: 630,
+        alt: 'সাহাবী (الصحابة الكرام رضي الله عنهم) — সোনালী প্রজন্ম | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'সাহাবী (الصحابة الكرام رضي الله عنهم) — সোনালী প্রজন্ম | ইসলাম',
+    description: 'হযরত আবু বকর, ওমর, উসমান, আলী (রা.)-সহ মহান সাহাবায়ে কিরামের প্রামাণ্য ইতিহাস।',
+    images: [`${SITE_URL}/og/sahabi.png`],
   },
   keywords: [
     'সাহাবী',
@@ -48,6 +63,7 @@ export default function DedicatedSahabiPage() {
     name: 'সাহাবী — সোনালী প্রজন্ম ও সাহাবায়ে কেরামের ইতিহাস',
     description: section.description,
     url: `${SITE_URL}/sahabi/`,
+    image: `${SITE_URL}/og/sahabi.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

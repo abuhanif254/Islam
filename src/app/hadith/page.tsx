@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/hadith.png`,
+        width: 1200,
+        height: 630,
+        alt: 'হাদিস (الحديث النبوي الشريف) — বিশুদ্ধ হাদিস সংকলন | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'হাদিস (الحديث النبوي الشريف) — বিশুদ্ধ হাদিস সংকলন | ইসলাম',
+    description: 'সিহাহ সিত্তাহ ও বিশুদ্ধ হাদিস সংকলনের আলোকে নবীজির সুন্নাহর প্রামাণ্য পর্যালোচনা।',
+    images: [`${SITE_URL}/og/hadith.png`],
   },
   keywords: [
     'হাদিস',
@@ -46,6 +61,7 @@ export default function DedicatedHadithPage() {
     name: 'হাদিস — সিহাহ সিত্তাহ ও উসূলুল হাদিস বিশ্বকোষ',
     description: section.description,
     url: `${SITE_URL}/hadith/`,
+    image: `${SITE_URL}/og/hadith.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

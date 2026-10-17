@@ -260,6 +260,25 @@ export default function IslamPortal({
     return found || categoryArticles[0];
   }, [articles, categoryArticles, selectedArticleId]);
 
+  const relatedArticles = useMemo(() => {
+    if (!currentArticle) return [];
+    const list: Article[] = [];
+    for (const art of categoryArticles) {
+      if (art && art.id !== currentArticle.id && !list.some((x) => x.id === art.id)) {
+        list.push(art);
+      }
+    }
+    if (list.length < 3) {
+      for (const art of articles) {
+        if (art && art.sectionId === activeSection.id && art.id !== currentArticle.id && !list.some((x) => x.id === art.id)) {
+          list.push(art);
+          if (list.length >= 3) break;
+        }
+      }
+    }
+    return list.slice(0, 3);
+  }, [categoryArticles, articles, currentArticle, activeSection.id]);
+
   const handleSelectSection = (sec: SectionPage) => {
     setActiveSectionId(sec.id);
     setActiveGroupFilter(sec.filterGroups[0]);
@@ -676,10 +695,15 @@ export default function IslamPortal({
               {SECTIONS_DATA.map((sec, idx) => {
                 const isActive = sec.id === activeSection.id;
                 return (
-                  <button
+                  <Link
                     key={sec.id}
-                    type="button"
-                    onClick={() => handleSelectSection(sec)}
+                    href={`/${sec.slug}/`}
+                    onClick={(e) => {
+                      if (!e.metaKey && !e.ctrlKey) {
+                        e.preventDefault();
+                        handleSelectSection(sec);
+                      }
+                    }}
                     className={`group relative px-5 sm:px-6 py-3.5 flex items-center gap-2.5 text-left transition-colors shrink-0 ${
                       isActive
                         ? 'bg-[#0B4F3B] text-[#FFFFFF] font-bold'
@@ -717,7 +741,7 @@ export default function IslamPortal({
                     {isActive && (
                       <span className="absolute bottom-0 left-0 right-0 h-1 bg-[#B85D19]" />
                     )}
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -826,11 +850,16 @@ export default function IslamPortal({
                 filteredCategories.map((cat, idx) => {
                   const isSelected = cat.id === activeCategory.id;
                   return (
-                    <button
+                    <Link
                       key={cat.id}
-                      type="button"
-                      onClick={() => handleSelectCategory(cat)}
-                      className={`w-full text-left p-3.5 transition-colors flex items-start justify-between gap-3 relative ${
+                      href={`/${activeSection.slug}/${cat.slug}/`}
+                      onClick={(e) => {
+                        if (!e.metaKey && !e.ctrlKey) {
+                          e.preventDefault();
+                          handleSelectCategory(cat);
+                        }
+                      }}
+                      className={`w-full text-left p-3.5 transition-colors flex items-start justify-between gap-3 relative block ${
                         isSelected
                           ? `${themeClasses.bgAccentTint} font-bold`
                           : `hover:${themeClasses.bgMuted}`
@@ -873,7 +902,7 @@ export default function IslamPortal({
                           {cat.badge}
                         </span>
                       </div>
-                    </button>
+                    </Link>
                   );
                 })
               )}
@@ -978,13 +1007,18 @@ export default function IslamPortal({
                     </div>
 
                     <h3 className="font-editorial text-2xl sm:text-3xl font-extrabold leading-snug">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenArticle(leadArticle)}
-                        className="text-left hover:text-[#0B4F3B] dark:hover:text-[#4CC39A] transition-colors"
+                      <Link
+                        href={`/${activeSection.slug}/${activeCategory.slug}/${leadArticle.slug}/`}
+                        onClick={(e) => {
+                          if (!e.metaKey && !e.ctrlKey) {
+                            e.preventDefault();
+                            handleOpenArticle(leadArticle);
+                          }
+                        }}
+                        className="text-left hover:text-[#0B4F3B] dark:hover:text-[#4CC39A] transition-colors block"
                       >
                         {leadArticle.title}
-                      </button>
+                      </Link>
                     </h3>
 
                     <p className={`text-base mt-2.5 font-medium ${themeClasses.textSecondary}`}>
@@ -1038,14 +1072,19 @@ export default function IslamPortal({
                           </span>
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleOpenArticle(leadArticle)}
+                        <Link
+                          href={`/${activeSection.slug}/${activeCategory.slug}/${leadArticle.slug}/`}
+                          onClick={(e) => {
+                            if (!e.metaKey && !e.ctrlKey) {
+                              e.preventDefault();
+                              handleOpenArticle(leadArticle);
+                            }
+                          }}
                           className="px-4 py-2 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs sm:text-sm font-bold border border-[#141615] inline-flex items-center gap-1.5"
                         >
                           <span>সম্পূর্ণ প্রবন্ধ পড়ুন</span>
                           <ChevronRight className="w-4 h-4" />
-                        </button>
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -1079,13 +1118,18 @@ export default function IslamPortal({
                             <span className={themeClasses.textMuted}>• {art.readTime}</span>
                           </div>
                           <h4 className="font-editorial text-lg sm:text-xl font-bold leading-snug">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenArticle(art)}
-                              className="text-left hover:text-[#0B4F3B] dark:hover:text-[#4CC39A]"
+                            <Link
+                              href={`/${activeSection.slug}/${activeCategory.slug}/${art.slug}/`}
+                              onClick={(e) => {
+                                if (!e.metaKey && !e.ctrlKey) {
+                                  e.preventDefault();
+                                  handleOpenArticle(art);
+                                }
+                              }}
+                              className="text-left hover:text-[#0B4F3B] dark:hover:text-[#4CC39A] block"
                             >
                               {art.title}
-                            </button>
+                            </Link>
                           </h4>
                           <p className={`text-sm ${themeClasses.textSecondary} line-clamp-2`}>
                             {art.subtitle}
@@ -1096,13 +1140,18 @@ export default function IslamPortal({
                         </div>
 
                         <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenArticle(art)}
-                            className="px-3.5 py-1.5 bg-[#0B4F3B] text-white text-xs font-bold hover:bg-[#083B2C]"
+                          <Link
+                            href={`/${activeSection.slug}/${activeCategory.slug}/${art.slug}/`}
+                            onClick={(e) => {
+                              if (!e.metaKey && !e.ctrlKey) {
+                                e.preventDefault();
+                                handleOpenArticle(art);
+                              }
+                            }}
+                            className="px-3.5 py-1.5 bg-[#0B4F3B] text-white text-xs font-bold hover:bg-[#083B2C] inline-block"
                           >
                             পাঠ করুন →
-                          </button>
+                          </Link>
                           <button
                             type="button"
                             onClick={() => handleShareUrl(art.slug)}
@@ -1359,6 +1408,71 @@ export default function IslamPortal({
                     ))}
                   </ol>
                 </div>
+
+                {/* RELATED ARTICLES MESH (Googlebot Crawlability & Reader Engagement) */}
+                {relatedArticles.length > 0 && (
+                  <div className={`p-5 ${themeClasses.bgSurface} border ${themeClasses.borderStrong} space-y-4`}>
+                    <div className="flex items-center justify-between border-b pb-3 border-[#DCD7CD] dark:border-[#26332F]">
+                      <h4 className="font-editorial text-base sm:text-lg font-bold flex items-center gap-2 text-[#0B4F3B] dark:text-[#4CC39A]">
+                        <BookOpen className="w-5 h-5 text-[#B85D19]" />
+                        <span>সম্পর্কিত অন্যান্য প্রামাণ্য প্রবন্ধ ও পরবর্তী পাঠ</span>
+                      </h4>
+                      <span className="text-xs font-bold text-[#B85D19] uppercase tracking-wider">
+                        পরবর্তী অধ্যয়ন
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {relatedArticles.map((relArt) => {
+                        const targetSec = SECTIONS_DATA.find((s) => s.id === relArt.sectionId) || activeSection;
+                        const targetCat = targetSec.categories.find((c) => c.id === relArt.categoryId) || activeCategory;
+                        const targetHref = `/${targetSec.slug}/${targetCat.slug}/${relArt.slug}/`;
+
+                        return (
+                          <Link
+                            key={relArt.id}
+                            href={targetHref}
+                            onClick={(e) => {
+                              if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                                e.preventDefault();
+                                if (targetSec.id !== activeSection.id) {
+                                  setActiveSectionId(targetSec.id);
+                                }
+                                if (targetCat.id !== activeCategory.id) {
+                                  setActiveCategoryId(targetCat.id);
+                                }
+                                handleOpenArticle(relArt);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className={`group flex flex-col justify-between p-4 ${themeClasses.bgMuted} border ${themeClasses.borderSubtle} hover:border-[#0B4F3B] transition-all duration-150 shadow-sm hover:shadow-md`}
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-[11px] font-bold">
+                                <span className="px-2 py-0.5 bg-[#0B4F3B] text-white">
+                                  {targetCat.name}
+                                </span>
+                                <span className={themeClasses.textMuted}>
+                                  {relArt.readTime}
+                                </span>
+                              </div>
+                              <h5 className="font-editorial text-sm sm:text-base font-bold group-hover:text-[#0B4F3B] dark:group-hover:text-[#4CC39A] transition-colors line-clamp-2">
+                                {relArt.title}
+                              </h5>
+                              <p className={`text-xs ${themeClasses.textSecondary} line-clamp-2`}>
+                                {relArt.subtitle}
+                              </p>
+                            </div>
+                            <div className="mt-3 pt-2 border-t border-dashed border-[#DCD7CD] dark:border-[#26332F] flex items-center justify-between text-xs font-bold text-[#B85D19]">
+                              <span>সম্পূর্ণ প্রবন্ধ পড়ুন</span>
+                              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </article>
             )}
           </section>
@@ -1400,32 +1514,39 @@ export default function IslamPortal({
               </div>
 
               <div className="divide-y divide-[#DCD7CD] dark:divide-[#26332F]">
-                {articles.slice(0, 5).map((art, i) => (
-                  <button
-                    key={art.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveSectionId(art.sectionId);
-                      setActiveCategoryId(art.categoryId);
-                      setSelectedArticleId(art.id);
-                      setViewMode('reader');
-                    }}
-                    className={`w-full text-left p-3.5 hover:${themeClasses.bgMuted} transition-colors flex items-start gap-3`}
-                  >
-                    <span className="font-editorial text-2xl font-extrabold text-[#B85D19] leading-none mt-0.5">
-                      ০{i + 1}
-                    </span>
-                    <div>
-                      <div className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
-                        {SECTIONS_DATA.find((s) => s.id === art.sectionId)?.name} •{' '}
-                        {art.readTime}
+                {articles.slice(0, 5).map((art, i) => {
+                  const sec = SECTIONS_DATA.find((s) => s.id === art.sectionId);
+                  const cat = sec?.categories.find((c) => c.id === art.categoryId) || sec?.categories[0];
+                  const href = sec && cat ? `/${sec.slug}/${cat.slug}/${art.slug}/` : '/';
+                  return (
+                    <Link
+                      key={art.id}
+                      href={href}
+                      onClick={(e) => {
+                        if (!e.metaKey && !e.ctrlKey) {
+                          e.preventDefault();
+                          setActiveSectionId(art.sectionId);
+                          setActiveCategoryId(art.categoryId);
+                          setSelectedArticleId(art.id);
+                          setViewMode('reader');
+                        }
+                      }}
+                      className={`w-full text-left p-3.5 hover:${themeClasses.bgMuted} transition-colors flex items-start gap-3 block`}
+                    >
+                      <span className="font-editorial text-2xl font-extrabold text-[#B85D19] leading-none mt-0.5">
+                        ০{i + 1}
+                      </span>
+                      <div>
+                        <div className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
+                          {sec?.name} • {art.readTime}
+                        </div>
+                        <h4 className="font-editorial text-sm font-bold leading-snug mt-0.5">
+                          {art.title}
+                        </h4>
                       </div>
-                      <h4 className="font-editorial text-sm font-bold leading-snug mt-0.5">
-                        {art.title}
-                      </h4>
-                    </div>
-                  </button>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
@@ -1435,11 +1556,16 @@ export default function IslamPortal({
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 {SECTIONS_DATA.map((sec) => (
-                  <button
+                  <Link
                     key={sec.id}
-                    type="button"
-                    onClick={() => handleSelectSection(sec)}
-                    className={`p-2.5 text-left border transition-colors ${
+                    href={`/${sec.slug}/`}
+                    onClick={(e) => {
+                      if (!e.metaKey && !e.ctrlKey) {
+                        e.preventDefault();
+                        handleSelectSection(sec);
+                      }
+                    }}
+                    className={`p-2.5 text-left border transition-colors block ${
                       sec.id === activeSection.id
                         ? 'bg-[#0B4F3B] text-white border-[#0B4F3B]'
                         : `${themeClasses.bgMuted} ${themeClasses.borderSubtle} hover:border-[#0B4F3B]`
@@ -1453,7 +1579,7 @@ export default function IslamPortal({
                     >
                       {sec.categories.length}টি ক্যাটেগরি
                     </div>
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>

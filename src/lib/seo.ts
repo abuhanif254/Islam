@@ -285,6 +285,7 @@ export function getOrganizationJsonLd() {
     alternateName: 'Islam Editorial Portal Bangladesh',
     url: SITE_URL,
     logo: `${SITE_URL}/icon.svg`,
+    image: `${SITE_URL}/og/home.png`,
     sameAs: [
       'https://facebook.com/islam.org.bd',
       'https://twitter.com/islam_org_bd',
@@ -427,6 +428,10 @@ export function getArticleJsonLd(
       name: `${category.name} — ${section.name}`,
       url: `${SITE_URL}/${section.slug}/${category.slug}/`
     },
+    image: [
+      `${SITE_URL}/og/${section.slug}.png`
+    ],
+    wordCount: article.contentSections.reduce((acc, s) => acc + s.body.length, 0),
     // Speakable Specification for Smart Assistants & Voice Search
     speakable: {
       '@type': 'SpeakableSpecification',
@@ -500,6 +505,7 @@ export function getCollectionPageJsonLd(
       description,
       ...(entity ? { sameAs: entity.url, alternateName: entity.arabicName } : {})
     },
+    image: slugKey && WIKIDATA_ENTITIES[slugKey] ? `${SITE_URL}/og/${slugKey}.png` : `${SITE_URL}/og/home.png`,
     numberOfItems: itemCount
   };
 

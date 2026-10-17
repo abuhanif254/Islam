@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/quran.png`,
+        width: 1200,
+        height: 630,
+        alt: 'কোরআন (القرآن الكريم) — অবতীর্ণ গ্রন্থ ও পূর্ণাঙ্গ তাফসীর | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'কোরআন (القرآن الكريم) — অবতীর্ণ গ্রন্থ ও পূর্ণাঙ্গ তাফসীর | ইসলাম',
+    description: 'সূরা আল-ফাতিহা থেকে শুরু করে নির্বাচিত ও ফযীলতপূর্ণ সূরাসমূহের ধারাবাহিক তাফসীর ও জীবনমুখী শিক্ষা।',
+    images: [`${SITE_URL}/og/quran.png`],
   },
   keywords: [
     'কোরআন',
@@ -45,6 +60,7 @@ export default function DedicatedQuranPage() {
     name: 'কোরআন — প্রামাণ্য তাফসীর ও সূরা সংকলন',
     description: section.description,
     url: `${SITE_URL}/quran/`,
+    image: `${SITE_URL}/og/quran.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

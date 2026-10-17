@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/angels.png`,
+        width: 1200,
+        height: 630,
+        alt: 'ফেরেস্তা (الملائكة الكرام) — নূরানী সৃষ্টি ও দায়িত্ব | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ফেরেস্তা (الملائكة الكرام) — নূরানী সৃষ্টি ও দায়িত্ব | ইসলাম',
+    description: 'ফেরেশতাগণের পরিচয়, মর্যাদা ও ওহী পৌঁছানোর দায়িত্বসহ সার্বিক আলোচনা।',
+    images: [`${SITE_URL}/og/angels.png`],
   },
   keywords: [
     'ফেরেস্তা',
@@ -45,6 +60,7 @@ export default function DedicatedAngelsPage() {
     name: 'ফেরেস্তা — নূরানী সৃষ্টি ও দায়িত্বের বিশ্বকোষ',
     description: section.description,
     url: `${SITE_URL}/angels/`,
+    image: `${SITE_URL}/og/angels.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

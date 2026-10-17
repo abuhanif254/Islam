@@ -79,6 +79,21 @@ export async function generateMetadata({
       type: 'website',
       locale: 'bn_BD',
       siteName: 'ইসলাম',
+      images: [
+        {
+          url: `${SITE_URL}/og/prayer-times.png`,
+          width: 1200,
+          height: 630,
+          alt: `${district.nameBangla} জেলার নামাজের সময়সূচি | ইসলাম`,
+          type: 'image/png',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${SITE_URL}/og/prayer-times.png`],
     },
     other: {
       'geo.region': 'BD',

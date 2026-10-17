@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/jannat.png`,
+        width: 1200,
+        height: 630,
+        alt: 'জান্নাত (الجنة ونعيمها) — অফুরন্ত নিয়ামতের উদ্যান | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'জান্নাত (الجنة ونعيمها) — অফুরন্ত নিয়ামতের উদ্যান | ইসলাম',
+    description: 'জান্নাতের স্তরসমূহ, জান্নাতী খাদ্য-পানীয়, হুর-গেলমান ও আল্লাহর দিদারের প্রামাণ্য পর্যালোচনা।',
+    images: [`${SITE_URL}/og/jannat.png`],
   },
   keywords: [
     'জান্নাত',
@@ -47,6 +62,7 @@ export default function DedicatedJannatPage() {
     name: 'জান্নাত — মুমিনদের চিরস্থায়ী শান্তির আবাস ও নিয়ামতের বিশ্বকোষ',
     description: section.description,
     url: `${SITE_URL}/jannat/`,
+    image: `${SITE_URL}/og/jannat.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

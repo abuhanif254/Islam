@@ -18,6 +18,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'bn_BD',
     siteName: 'ইসলাম',
+    images: [
+      {
+        url: `${SITE_URL}/og/prophets.png`,
+        width: 1200,
+        height: 630,
+        alt: 'নবী (قصص الأنبياء والمرسلين) — নবী ও রাসূলগণের সিরাত | ইসলাম',
+        type: 'image/png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'নবী (قصص الأنبياء والمرسلين) — নবী ও রাসূলগণের সিরাত | ইসলাম',
+    description: 'রাসূলুল্লাহ (সা.)-এর সিরাত ও শ্রেষ্ঠ ৫ উলুল আযম রাসূলের প্রামাণ্য ইতিহাস।',
+    images: [`${SITE_URL}/og/prophets.png`],
   },
   keywords: [
     'নবী',
@@ -47,6 +62,7 @@ export default function DedicatedProphetsPage() {
     name: 'নবী — আম্বিয়ায়ে কেরামের প্রামাণ্য ইতিহাস ও সিরাত',
     description: section.description,
     url: `${SITE_URL}/prophets/`,
+    image: `${SITE_URL}/og/prophets.png`,
     hasPart: section.categories.map((cat) => ({
       '@type': 'WebPage',
       name: cat.name,

@@ -65,11 +65,21 @@ export async function generateMetadata({
       modifiedTime: '2026-10-18T00:00:00+06:00',
       authors: [article.author],
       tags: article.tags,
+      images: [
+        {
+          url: `${SITE_URL}/og/${section.slug}.png`,
+          width: 1200,
+          height: 630,
+          alt: `${article.title} | ইসলাম`,
+          type: 'image/png',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: article.title,
       description: article.subtitle || article.summary,
+      images: [`${SITE_URL}/og/${section.slug}.png`],
     },
     other: {
       'geo.region': GEO_CONSTANTS.region,
