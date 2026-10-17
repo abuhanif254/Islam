@@ -22,12 +22,16 @@ import {
   Award,
   Calendar,
   UserCheck,
-  BookMarked
+  BookMarked,
+  Database
 } from 'lucide-react';
+import Link from 'next/link';
 import { ThemeMode, ViewMode, Article, CategoryItem, SectionPage, CitationBox } from '@/types';
 import { SECTIONS_DATA } from '@/data/sections';
 import { INITIAL_ARTICLES } from '@/data/articles';
 import { IslamicGeometricEmblem } from './IslamicGeometricEmblem';
+import SectionHeroBanner from './SectionHeroBanner';
+import MegaDirectoryModal from './MegaDirectoryModal';
 
 export interface IslamPortalProps {
   initialSectionSlug?: string;
@@ -96,6 +100,7 @@ export default function IslamPortal({
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(['art-fatiha-1', 'art-baqarah-1']);
   const [showBookmarksDrawer, setShowBookmarksDrawer] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+  const [directoryModalOpen, setDirectoryModalOpen] = useState<boolean>(false);
 
   // Reading Preferences (Solid Color Themes + Font Scale)
   const [themeMode, setThemeMode] = useState<ThemeMode>('paper');
@@ -714,6 +719,15 @@ export default function IslamPortal({
                 )}
               </div>
 
+              <Link
+                href="/admin/"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold bg-[#FAF8F5] dark:bg-[#111615] hover:bg-[#F2EFE9] text-[#0B4F3B] dark:text-[#4CC39A] border-2 border-[#141615] transition-colors shrink-0"
+                title="সেন্ট্রাল অ্যাডমিন কন্ট্রোল প্যানেল"
+              >
+                <Database className="w-3.5 h-3.5 text-[#B85D19]" />
+                <span className="hidden xl:inline">অ্যাডমিন</span>
+              </Link>
+
               <button
                 type="button"
                 onClick={() => setViewMode(viewMode === 'writer' ? 'magazine' : 'writer')}
@@ -746,6 +760,18 @@ export default function IslamPortal({
             </button>
 
             <div className="flex items-center overflow-x-auto no-scrollbar divide-x divide-[#DCD7CD] dark:divide-[#26332F] w-full">
+              {/* MEGA DIRECTORY BUTTON */}
+              <button
+                type="button"
+                onClick={() => setDirectoryModalOpen(true)}
+                className="px-4 sm:px-5 py-3.5 bg-[#B85D19] hover:bg-[#9B4E15] text-white font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 border-r-2 border-[#141615] transition-colors shadow-inner"
+                title="সকল ৯টি বিভাগ ও ২৪২টি ক্যাটেগরির ডিরেক্টরি সূচি"
+              >
+                <Layers className="w-4 h-4 text-[#F5EBE1]" />
+                <span className="hidden sm:inline">সকল বিভাগ ও ডিরেক্টরি</span>
+                <span className="sm:hidden">ডিরেক্টরি</span>
+              </button>
+
               {SECTIONS_DATA.map((sec, idx) => {
                 const isActive = sec.id === activeSection.id;
                 return (
@@ -821,6 +847,13 @@ export default function IslamPortal({
 
       {/* 4. MAIN 12-COLUMN MAGAZINE PORTAL LAYOUT */}
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* SECTION HERO BANNER WITH AUTHENTIC QURANIC CITATION & KEY STATS */}
+        <SectionHeroBanner
+          section={activeSection}
+          themeMode={themeMode}
+          onOpenDirectory={() => setDirectoryModalOpen(true)}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           {/* LEFT VERTICAL CATEGORY SIDEBAR */}
           <aside
@@ -1789,6 +1822,18 @@ export async function generateMetadata({
           </div>
         </div>
       </footer>
+
+      {/* 8. INTERACTIVE MEGA DIRECTORY MODAL */}
+      <MegaDirectoryModal
+        isOpen={directoryModalOpen}
+        onClose={() => setDirectoryModalOpen(false)}
+        onSelectCategory={(sec, cat) => {
+          setActiveSectionId(sec.id);
+          setActiveGroupFilter(sec.filterGroups[0]);
+          setActiveCategoryId(cat.id);
+          setViewMode('magazine');
+        }}
+      />
     </div>
   );
 }
