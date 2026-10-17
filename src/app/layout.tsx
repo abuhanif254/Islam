@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Amiri, Hind_Siliguri, Noto_Serif_Bengali } from 'next/font/google';
 import './globals.css';
 import {
   SITE_NAME,
@@ -93,6 +94,48 @@ export const metadata: Metadata = {
   },
 };
 
+const amiri = Amiri({
+  subsets: ['arabic'],
+  weight: ['400', '700'],
+  variable: '--font-amiri',
+  display: 'swap',
+});
+
+const hindSiliguri = Hind_Siliguri({
+  subsets: ['bengali'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-hind-siliguri',
+  display: 'swap',
+});
+
+const notoSerifBengali = Noto_Serif_Bengali({
+  subsets: ['bengali'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-noto-serif-bengali',
+  display: 'swap',
+});
+
+const speculationRules = {
+  prerender: [
+    {
+      source: 'list',
+      urls: [
+        '/allah/',
+        '/angels/',
+        '/quran/',
+        '/hadith/',
+        '/prophets/',
+        '/sahabi/',
+        '/fiqh/',
+        '/jannat/',
+        '/jahannam/',
+        '/prayer-times/'
+      ],
+      eagerness: 'moderate'
+    }
+  ]
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -102,11 +145,17 @@ export default function RootLayout({
   const organizationJsonLd = getOrganizationJsonLd();
 
   return (
-    <html lang="bn" dir="ltr" className="scroll-smooth">
+    <html
+      lang="bn"
+      dir="ltr"
+      className={`scroll-smooth ${amiri.variable} ${hindSiliguri.variable} ${notoSerifBengali.variable}`}
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="help" href="/llms.txt" type="text/markdown" title="LLMs Context Guide" />
+        <script
+          type="speculationrules"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(speculationRules) }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}

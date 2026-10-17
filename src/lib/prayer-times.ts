@@ -33,6 +33,7 @@ export const BANGLADESH_CITIES: Record<string, CityOffset> = {
 
   // চট্টগ্রাম বিভাগ (১১টি জেলা)
   chittagong: { name: 'Chittagong', nameBn: 'চট্টগ্রাম', divisionBn: 'চট্টগ্রাম', fajrOffset: -5, sunriseOffset: -5, dhuhrOffset: -5, asrOffset: -5, maghribOffset: -5, ishaOffset: -5 },
+  chattogram: { name: 'Chattogram', nameBn: 'চট্টগ্রাম', divisionBn: 'চট্টগ্রাম', fajrOffset: -5, sunriseOffset: -5, dhuhrOffset: -5, asrOffset: -5, maghribOffset: -5, ishaOffset: -5 },
   'coxs-bazar': { name: "Cox's Bazar", nameBn: 'কক্সবাজার', divisionBn: 'চট্টগ্রাম', fajrOffset: -6, sunriseOffset: -6, dhuhrOffset: -6, asrOffset: -6, maghribOffset: -6, ishaOffset: -6 },
   cumilla: { name: 'Cumilla', nameBn: 'কুমিল্লা', divisionBn: 'চট্টগ্রাম', fajrOffset: -3, sunriseOffset: -3, dhuhrOffset: -3, asrOffset: -3, maghribOffset: -3, ishaOffset: -3 },
   feni: { name: 'Feni', nameBn: 'ফেনী', divisionBn: 'চট্টগ্রাম', fajrOffset: -4, sunriseOffset: -4, dhuhrOffset: -4, asrOffset: -4, maghribOffset: -4, ishaOffset: -4 },
@@ -74,6 +75,7 @@ export const BANGLADESH_CITIES: Record<string, CityOffset> = {
 
   // বরিশাল বিভাগ (৬টি জেলা)
   barisal: { name: 'Barisal', nameBn: 'বরিশাল', divisionBn: 'বরিশাল', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
+  barishal: { name: 'Barishal', nameBn: 'বরিশাল', divisionBn: 'বরিশাল', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
   bhola: { name: 'Bhola', nameBn: 'ভোলা', divisionBn: 'বরিশাল', fajrOffset: -1, sunriseOffset: -1, dhuhrOffset: -1, asrOffset: -1, maghribOffset: -1, ishaOffset: -1 },
   patuakhali: { name: 'Patuakhali', nameBn: 'পটুয়াখালী', divisionBn: 'বরিশাল', fajrOffset: 1, sunriseOffset: 1, dhuhrOffset: 1, asrOffset: 1, maghribOffset: 1, ishaOffset: 1 },
   pirojpur: { name: 'Pirojpur', nameBn: 'পিরোজপুর', divisionBn: 'বরিশাল', fajrOffset: 2, sunriseOffset: 2, dhuhrOffset: 2, asrOffset: 2, maghribOffset: 2, ishaOffset: 2 },

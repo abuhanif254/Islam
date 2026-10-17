@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { SECTIONS_DATA } from '@/data/sections';
 import { getAllArticlesForSitemap } from '@/data/articles';
-import { SITE_URL } from '@/lib/seo';
+import { SITE_URL, BANGLADESH_DISTRICTS } from '@/lib/seo';
 
 export const dynamic = 'force-static';
 
@@ -62,5 +62,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   );
 
-  return [homeEntry, ...sectionEntries, ...categoryEntries, ...articleEntries];
+  // 5. 64 Districts Programmatic Prayer Times Hub and Pages
+  const prayerTimesHubEntry: MetadataRoute.Sitemap[number] = {
+    url: `${SITE_URL}/prayer-times/`,
+    lastModified: lastModDate,
+    changeFrequency: 'daily',
+    priority: 0.95,
+  };
+
+  const districtPrayerEntries: MetadataRoute.Sitemap = BANGLADESH_DISTRICTS.map((d) => ({
+    url: `${SITE_URL}/prayer-times/${d.id}/`,
+    lastModified: lastModDate,
+    changeFrequency: 'daily' as const,
+    priority: 0.9,
+  }));
+
+  return [
+    homeEntry,
+    prayerTimesHubEntry,
+    ...districtPrayerEntries,
+    ...sectionEntries,
+    ...categoryEntries,
+    ...articleEntries,
+  ];
 }
