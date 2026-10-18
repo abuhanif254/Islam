@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   Zap,
   Info,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { syncDatasetToSupabase, getAdminMetrics } from '@/lib/supabase-service';
@@ -76,6 +77,7 @@ CREATE TABLE IF NOT EXISTS public.articles (
   key_takeaways TEXT[] DEFAULT '{}',
   content_sections JSONB DEFAULT '[]'::jsonb,
   "references" TEXT[] DEFAULT '{}',
+  featured_image JSONB DEFAULT NULL,
   views_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -405,6 +407,22 @@ export default function AdminDatabasePage() {
               প্রজেক্টের রুট ডিরেক্টরিতে <code className="bg-[#EFEBE4] px-1 font-mono">.env.local</code> ফাইলে ভেরিয়েবল দুটো সংরক্ষণ করে ওয়ান-ক্লিক সিঙ্ক বাটনে চাপুন।
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* 1-LINE MIGRATION HELPER */}
+      <div className="bg-[#FAF8F5] border-2 border-[#B85D19] p-4 sm:p-5 space-y-2 shadow-xs">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[#B85D19]" />
+          <h4 className="font-editorial text-sm font-bold text-[#141615]">
+            বিদ্যমান ডাটাবেজে ইমেজ কলাম যুক্ত করার ১-ক্লিক SQL মাইগ্রেশন (Feature Migration):
+          </h4>
+        </div>
+        <p className="text-xs text-[#6E7571] leading-relaxed">
+          আপনি যদি পূর্বেই ডাটাবেজ তৈরি করে থাকেন, তবে পুরো টেবিল পুনরায় তৈরি করার প্রয়োজন নেই। Supabase <strong>SQL Editor</strong>-এ শুধুমাত্র নিচের ১-লাইনের কোডটি রান করুন:
+        </p>
+        <div className="p-3 bg-[#FFFFFF] border border-[#DCD7CD] font-mono text-xs text-[#0B4F3B] font-bold select-all flex items-center justify-between">
+          <span>ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS featured_image JSONB DEFAULT NULL;</span>
         </div>
       </div>
 
