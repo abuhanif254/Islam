@@ -71,6 +71,13 @@ export interface DbArticle {
   }[];
   references: string[];
   views_count?: number;
+  featured_image?: {
+    url: string;
+    alt: string;
+    caption?: string;
+    source_title?: string;
+    source_url?: string;
+  };
   created_at?: string;
   updated_at?: string;
 }

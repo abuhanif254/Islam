@@ -10,7 +10,8 @@ import {
   AlertTriangle,
   Search,
   Check,
-  Sparkles
+  Sparkles,
+  Image as ImageIcon
 } from 'lucide-react';
 import {
   QURAN_SURAHS,
@@ -20,8 +21,9 @@ import {
   CLASSICAL_SCHOLARS
 } from '@/data/quran-surahs';
 import ArabicPalette from './ArabicPalette';
+import ImageUploadManager from './ImageUploadManager';
 
-export type IslamicBlockType = 'quran' | 'hadith' | 'fiqh' | 'quote' | 'warning';
+export type IslamicBlockType = 'quran' | 'hadith' | 'fiqh' | 'quote' | 'warning' | 'image';
 
 interface IslamicBlockModalProps {
   isOpen: boolean;
@@ -68,6 +70,14 @@ export default function IslamicBlockModal({
   const [warningContent, setWarningContent] = useState('');
   const [warningClarification, setWarningClarification] = useState('');
 
+  // Image state
+  const [imgUrl, setImgUrl] = useState('');
+  const [imgAlt, setImgAlt] = useState('');
+  const [imgCaption, setImgCaption] = useState('');
+  const [imgSourceTitle, setImgSourceTitle] = useState('');
+  const [imgSourceUrl, setImgSourceUrl] = useState('');
+  const [imgLayout, setImgLayout] = useState<'full' | 'center'>('full');
+
   if (!isOpen) return null;
 
   // Filter Surahs
@@ -107,6 +117,18 @@ export default function IslamicBlockModal({
       markup = `\n\n[উক্তি: ${header}]\n${quoteText.trim()}\n[/উক্তি]\n\n`;
     } else if (activeType === 'warning') {
       markup = `\n\n[সতর্কতা: ${warningTitle.trim()}]\nবর্ণনা: ${warningContent.trim()}\nবিশুদ্ধ তাহকীক ও নিরসন: ${warningClarification.trim()}\n[/সতর্কতা]\n\n`;
+    } else if (activeType === 'image') {
+      if (!imgUrl.trim()) return;
+      const parts = [
+        imgUrl.trim(),
+        imgAlt.trim() ? `অল্ট: ${imgAlt.trim()}` : '',
+        imgCaption.trim() ? `ক্যাপশন: ${imgCaption.trim()}` : '',
+        imgSourceTitle.trim() ? `উৎস: ${imgSourceTitle.trim()}` : '',
+        imgSourceUrl.trim() ? `লিংক: ${imgSourceUrl.trim()}` : '',
+        `বিন্যাস: ${imgLayout === 'center' ? 'কেন্দ্রিক' : 'পূর্ণ-প্রস্থ'}`
+      ].filter(Boolean).join(' | ');
+
+      markup = `\n\n[ছবি: ${parts}]\n\n`;
     }
 
     onInsertMarkup(markup);
@@ -133,67 +155,79 @@ export default function IslamicBlockModal({
           </button>
         </div>
 
-        {/* TABS SELECTOR */}
-        <div className="grid grid-cols-5 border-b border-[#DCD7CD] dark:border-[#2A3834] bg-[#FFFFFF] dark:bg-[#1A2421] text-xs font-bold">
+        {/* TABS SELECTOR (6 TABS) */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 border-b border-[#DCD7CD] dark:border-[#2A3834] bg-[#FFFFFF] dark:bg-[#1A2421] text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveType('quran')}
-            className={`py-2.5 px-3 flex items-center justify-center gap-1.5 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
+            className={`py-2.5 px-2 flex items-center justify-center gap-1 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
               activeType === 'quran'
                 ? 'bg-[#0B4F3B] text-white'
                 : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>কুরআন আয়াত</span>
+            <span>কুরআন</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveType('hadith')}
-            className={`py-2.5 px-3 flex items-center justify-center gap-1.5 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
+            className={`py-2.5 px-2 flex items-center justify-center gap-1 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
               activeType === 'hadith'
                 ? 'bg-[#B85D19] text-white'
                 : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
             }`}
           >
             <Bookmark className="w-3.5 h-3.5" />
-            <span>হাদিস তাহকীক</span>
+            <span>হাদিস</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveType('fiqh')}
-            className={`py-2.5 px-3 flex items-center justify-center gap-1.5 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
+            className={`py-2.5 px-2 flex items-center justify-center gap-1 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
               activeType === 'fiqh'
                 ? 'bg-[#15803D] text-white'
                 : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>ফিকহী বিধান</span>
+            <span>ফিকহ</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveType('quote')}
-            className={`py-2.5 px-3 flex items-center justify-center gap-1.5 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
+            className={`py-2.5 px-2 flex items-center justify-center gap-1 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
               activeType === 'quote'
                 ? 'bg-[#0F766E] text-white'
                 : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
             }`}
           >
             <Quote className="w-3.5 h-3.5" />
-            <span>সালাফ উক্তি</span>
+            <span>উক্তি</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveType('warning')}
-            className={`py-2.5 px-3 flex items-center justify-center gap-1.5 transition-colors ${
+            className={`py-2.5 px-2 flex items-center justify-center gap-1 transition-colors border-r border-[#DCD7CD] dark:border-[#2A3834] ${
               activeType === 'warning'
                 ? 'bg-[#DC2626] text-white'
                 : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
-            <span>সতর্কতা খণ্ডন</span>
+            <span>সতর্কতা</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveType('image')}
+            className={`py-2.5 px-2 flex items-center justify-center gap-1 transition-colors ${
+              activeType === 'image'
+                ? 'bg-[#0B4F3B] text-white'
+                : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
+            }`}
+          >
+            <ImageIcon className="w-3.5 h-3.5" />
+            <span>ছবি</span>
           </button>
         </div>
 
@@ -559,6 +593,72 @@ export default function IslamicBlockModal({
                   placeholder="মুহাদ্দিসীনে কেরামের মতে এর বিশুদ্ধ পাঠ হলো..."
                   className="w-full p-3 text-sm bg-white dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* 6. IN-ARTICLE IMAGE TAB */}
+          {activeType === 'image' && (
+            <div className="space-y-4">
+              <ImageUploadManager
+                value={
+                  imgUrl
+                    ? {
+                        url: imgUrl,
+                        alt: imgAlt,
+                        caption: imgCaption,
+                        sourceTitle: imgSourceTitle,
+                        sourceUrl: imgSourceUrl
+                      }
+                    : undefined
+                }
+                onChange={(img) => {
+                  if (img) {
+                    setImgUrl(img.url);
+                    setImgAlt(img.alt);
+                    setImgCaption(img.caption || '');
+                    setImgSourceTitle(img.sourceTitle || '');
+                    setImgSourceUrl(img.sourceUrl || '');
+                  } else {
+                    setImgUrl('');
+                    setImgAlt('');
+                    setImgCaption('');
+                    setImgSourceTitle('');
+                    setImgSourceUrl('');
+                  }
+                }}
+                label="প্রবন্ধের ভেতরের ছবি (In-Article Inline Image)"
+                helperText="ঐতিহাসিক মানচিত্র, প্রাচীন পাণ্ডুলিপি বা বিষয়ের দৃশ্যপট"
+              />
+
+              <div className="p-3 bg-white dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47] flex items-center justify-between">
+                <span className="text-xs font-bold text-[#141615] dark:text-[#E8E6E1]">
+                  ছবি প্রদর্শনের বিন্যাস (Image Layout)
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setImgLayout('full')}
+                    className={`px-3 py-1 text-xs font-bold border transition-colors ${
+                      imgLayout === 'full'
+                        ? 'bg-[#0B4F3B] text-white border-[#0B4F3B]'
+                        : 'bg-[#FAF8F5] dark:bg-[#232F2B] text-[#6E7571] border-[#DCD7CD]'
+                    }`}
+                  >
+                    পূর্ণ-প্রস্থ (Full Width)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImgLayout('center')}
+                    className={`px-3 py-1 text-xs font-bold border transition-colors ${
+                      imgLayout === 'center'
+                        ? 'bg-[#0B4F3B] text-white border-[#0B4F3B]'
+                        : 'bg-[#FAF8F5] dark:bg-[#232F2B] text-[#6E7571] border-[#DCD7CD]'
+                    }`}
+                  >
+                    কেন্দ্রিক ফ্রেম (Centered Frame)
+                  </button>
+                </div>
               </div>
             </div>
           )}

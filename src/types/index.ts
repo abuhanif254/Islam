@@ -14,6 +14,14 @@ export interface ArticleSection {
   body: string;
 }
 
+export interface ArticleFeaturedImage {
+  url: string;
+  alt: string;
+  caption?: string;
+  sourceTitle?: string;
+  sourceUrl?: string;
+}
+
 export interface Article {
   id: string;
   slug: string;
@@ -32,6 +40,7 @@ export interface Article {
   keyTakeaways: string[];
   contentSections: ArticleSection[];
   references: string[];
+  featuredImage?: ArticleFeaturedImage;
 }
 
 export interface CategoryItem {

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { SITE_URL } from '@/lib/seo';
 import { toBengaliDigits } from '@/lib/prayer-times';
+import { ArticleFeaturedImage } from '@/types';
 
 interface LiveSeoScoreCardProps {
   title: string;
@@ -31,6 +32,7 @@ interface LiveSeoScoreCardProps {
   references: string[];
   tags: string[];
   wordCount: number;
+  featuredImage?: ArticleFeaturedImage;
 }
 
 export default function LiveSeoScoreCard({
@@ -47,7 +49,8 @@ export default function LiveSeoScoreCard({
   contentSections,
   references,
   tags,
-  wordCount
+  wordCount,
+  featuredImage
 }: LiveSeoScoreCardProps) {
   const [devicePreview, setDevicePreview] = useState<'desktop' | 'mobile'>('desktop');
 
@@ -56,29 +59,29 @@ export default function LiveSeoScoreCard({
     let score = 0;
     const items: { label: string; passed: boolean; score: number; maxScore: number; tip: string }[] = [];
 
-    // 1. Title Length (40-70 chars) - 15 pts
+    // 1. Title Length (30-75 chars) - 10 pts
     const titleLen = title.trim().length;
     const titlePassed = titleLen >= 30 && titleLen <= 75;
-    const titleScore = titlePassed ? 15 : titleLen > 10 ? 8 : 0;
+    const titleScore = titlePassed ? 10 : titleLen > 10 ? 5 : 0;
     score += titleScore;
     items.push({
       label: 'শিরোনামের উপযুক্ত দৈর্ঘ্য (৩০-৭৫ অক্ষর)',
       passed: titlePassed,
       score: titleScore,
-      maxScore: 15,
+      maxScore: 10,
       tip: `বর্তমান দৈর্ঘ্য: ${titleLen} অক্ষর। আদর্শ হলো ৪০-৬৫ অক্ষর।`
     });
 
-    // 2. Subtitle & Summary Length (100-180 chars) - 15 pts
+    // 2. Subtitle & Summary Length (90-220 chars) - 10 pts
     const summaryLen = (summary || subtitle).trim().length;
     const summaryPassed = summaryLen >= 90 && summaryLen <= 220;
-    const summaryScore = summaryPassed ? 15 : summaryLen > 30 ? 7 : 0;
+    const summaryScore = summaryPassed ? 10 : summaryLen > 30 ? 5 : 0;
     score += summaryScore;
     items.push({
       label: 'সারসংক্ষেপ ও মেটা বিবরণ (১০০-২০০ অক্ষর)',
       passed: summaryPassed,
       score: summaryScore,
-      maxScore: 15,
+      maxScore: 10,
       tip: `বর্তমান দৈর্ঘ্য: ${summaryLen} অক্ষর। গুগল অনুসন্ধানে ১২০-১৬০ অক্ষর সবচেয়ে কার্যকরী।`
     });
 
@@ -107,18 +110,18 @@ export default function LiveSeoScoreCard({
       tip: `বর্তমান পয়েন্ট: ${validTakeaways.length}টি। পাঠকের দ্রুত অনুধাবনের জন্য ৩-৫টি পয়েন্ট আদর্শ।`
     });
 
-    // 5. Content Volume & Sections (>= 3 sections, >= 500 words) - 20 pts
+    // 5. Content Volume & Sections (>= 3 sections, >= 450 words) - 15 pts
     const validSections = contentSections.filter((s) => s.heading.trim().length > 0 || s.body.trim().length > 30);
     const volumePassed = validSections.length >= 3 && wordCount >= 450;
     const volumeScore = volumePassed
-      ? 20
-      : (validSections.length >= 2 ? 8 : 4) + (wordCount >= 300 ? 7 : wordCount >= 150 ? 4 : 0);
+      ? 15
+      : (validSections.length >= 2 ? 6 : 3) + (wordCount >= 300 ? 5 : wordCount >= 150 ? 3 : 0);
     score += volumeScore;
     items.push({
       label: 'গবেষণার গভীরতা ও অনুচ্ছেদ বিন্যাস (৩+ সেকশন, ৫০০+ শব্দ)',
       passed: volumePassed,
       score: volumeScore,
-      maxScore: 20,
+      maxScore: 15,
       tip: `বর্তমান: ${validSections.length}টি অনুচ্ছেদ ও ${wordCount} শব্দ। গভীর গবেষণায় ৮০০-১২০০ শব্দ সর্বোত্তম।`
     });
 
@@ -152,16 +155,34 @@ export default function LiveSeoScoreCard({
       tip: `বর্তমান তথ্যসূত্র: ${validRefs.length}টি। এটি গুগলের E-E-A-T অথরিটি প্রতিষ্ঠা করে।`
     });
 
-    // 8. Tags (>= 3 tags) - 5 pts
+    // 8. Featured Hero Image & Alt Text - 10 pts
+    const hasImage = Boolean(featuredImage?.url && featuredImage.url.trim().length > 5);
+    const hasAlt = Boolean(featuredImage?.alt && featuredImage.alt.trim().length > 3);
+    const imgPassed = hasImage && hasAlt;
+    const imgScore = imgPassed ? 10 : hasImage ? 6 : 0;
+    score += imgScore;
+    items.push({
+      label: 'প্রচ্ছদ ফিচার্ড ছবি ও বর্ণনামূলক অল্ট টেক্সট (Featured Image & Alt)',
+      passed: imgPassed,
+      score: imgScore,
+      maxScore: 10,
+      tip: hasImage
+        ? hasAlt
+          ? 'ছবি ও অল্ট টেক্সট যথাযথভাবে সংযুক্ত রয়েছে। গুগল ডিসকভারে প্রদর্শন নিশ্চিত।'
+          : 'ছবি সংযুক্ত রয়েছে তবে অল্ট টেক্সট দেওয়া হয়নি। এসইও এর জন্য অল্ট টেক্সট লিখুন।'
+        : 'ফিচার্ড ছবি যোগ করলে গুগল ডিসকভার ও সোশ্যাল মিডিয়ায় ট্রাফিক ৩ গুণ বৃদ্ধি পায়।'
+    });
+
+    // 9. Tags (>= 3 tags) - 10 pts
     const validTags = tags.filter((t) => t.trim().length > 0);
     const tagsPassed = validTags.length >= 3;
-    const tagsScore = tagsPassed ? 5 : validTags.length * 1.5;
+    const tagsScore = tagsPassed ? 10 : validTags.length * 3;
     score += tagsScore;
     items.push({
       label: 'ট্যাগ ও বিষয়ভিত্তিক কিওয়ার্ড (৩-৮টি)',
       passed: tagsPassed,
       score: tagsScore,
-      maxScore: 5,
+      maxScore: 10,
       tip: `বর্তমান ট্যাগ: ${validTags.length}টি।`
     });
 
@@ -179,7 +200,8 @@ export default function LiveSeoScoreCard({
     contentSections,
     references,
     tags,
-    wordCount
+    wordCount,
+    featuredImage
   ]);
 
   const targetUrl = `${SITE_URL}/${sectionSlug || 'section'}/${categorySlug || 'category'}/${
@@ -284,14 +306,27 @@ export default function LiveSeoScoreCard({
               </span>
             </div>
           </div>
-          <h4 className="text-[#1a0dab] hover:underline text-base sm:text-lg font-medium leading-snug cursor-pointer line-clamp-2">
-            {title || 'প্রবন্ধের পূর্ণাঙ্গ শিরোনাম এখানে প্রদর্শিত হবে'}
-          </h4>
-          <p className="text-xs text-[#4d5156] leading-relaxed line-clamp-2">
-            {summary ||
-              subtitle ||
-              'প্রবন্ধের ভূমিকা ও মূল সারসংক্ষেপ এখানে পাঠকদের উদ্দেশ্যে প্রদর্শিত হবে, যা ক্লিকে আকৃষ্ট করবে...'}
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-1">
+              <h4 className="text-[#1a0dab] hover:underline text-base sm:text-lg font-medium leading-snug cursor-pointer line-clamp-2">
+                {title || 'প্রবন্ধের পূর্ণাঙ্গ শিরোনাম এখানে প্রদর্শিত হবে'}
+              </h4>
+              <p className="text-xs text-[#4d5156] leading-relaxed line-clamp-2">
+                {summary ||
+                  subtitle ||
+                  'প্রবন্ধের ভূমিকা ও মূল সারসংক্ষেপ এখানে পাঠকদের উদ্দেশ্যে প্রদর্শিত হবে, যা ক্লিকে আকৃষ্ট করবে...'}
+              </p>
+            </div>
+            {featuredImage?.url && (
+              <div className="w-20 h-20 shrink-0 rounded-md overflow-hidden border border-[#DCD7CD] mt-0.5">
+                <img
+                  src={featuredImage.url}
+                  alt={featuredImage.alt || 'সার্চ ফলাফল প্রিভিউ'}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -308,17 +343,27 @@ export default function LiveSeoScoreCard({
         <div className="max-w-md mx-auto border border-[#DCD7CD] dark:border-[#3B4D47] overflow-hidden bg-[#FAF8F5] dark:bg-[#232F2B] shadow-sm">
           {/* Visual banner representation */}
           <div className="aspect-[1200/630] bg-[#0B4F3B] p-5 flex flex-col justify-between text-white relative overflow-hidden">
-            <div className="flex items-center justify-between">
+            {featuredImage?.url && (
+              <>
+                <img
+                  src={featuredImage.url}
+                  alt={featuredImage.alt || title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30" />
+              </>
+            )}
+            <div className="flex items-center justify-between relative z-10">
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 bg-[#B85D19]">
                 {categoryName || 'ইসলামিক জ্ঞানকোষ'}
               </span>
               <span className="text-xs font-serif font-bold text-[#E8A86B]">اسلام</span>
             </div>
-            <div>
-              <h5 className="font-editorial text-base sm:text-lg font-bold line-clamp-2 leading-tight">
+            <div className="relative z-10">
+              <h5 className="font-editorial text-base sm:text-lg font-bold line-clamp-2 leading-tight drop-shadow-md">
                 {title || 'প্রবন্ধের আকর্ষণীয় শিরোনাম'}
               </h5>
-              <p className="text-[11px] text-[#D5E6DF] line-clamp-1 mt-1 font-medium">
+              <p className="text-[11px] text-[#D5E6DF] line-clamp-1 mt-1 font-medium drop-shadow-xs">
                 {subtitle || 'প্রামাণ্য ও গবেষণাধর্মী ইসলামিক প্রবন্ধ'}
               </p>
             </div>

@@ -1025,6 +1025,40 @@ export default function IslamPortal({
                       {leadArticle.subtitle}
                     </p>
 
+                    {leadArticle.featuredImage?.url && (
+                      <figure className="my-5 border-2 border-[#141615] overflow-hidden bg-[#FAF8F5] dark:bg-[#1A2421]">
+                        <img
+                          src={leadArticle.featuredImage.url}
+                          alt={leadArticle.featuredImage.alt || leadArticle.title}
+                          className="w-full h-auto object-cover max-h-[380px]"
+                        />
+                        {(leadArticle.featuredImage.caption || leadArticle.featuredImage.sourceTitle) && (
+                          <figcaption className="text-xs p-2.5 text-[#6E7571] dark:text-[#9BA39F] flex flex-wrap items-center justify-between gap-2 border-t border-[#DCD7CD] dark:border-[#2A3834]">
+                            {leadArticle.featuredImage.caption && (
+                              <span className="font-medium italic">{leadArticle.featuredImage.caption}</span>
+                            )}
+                            {leadArticle.featuredImage.sourceTitle && (
+                              <span className="flex items-center gap-1 ml-auto">
+                                <span>উৎস:</span>
+                                {leadArticle.featuredImage.sourceUrl ? (
+                                  <a
+                                    href={leadArticle.featuredImage.sourceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#0B4F3B] dark:text-[#4CC39A] underline hover:text-[#B85D19]"
+                                  >
+                                    {leadArticle.featuredImage.sourceTitle}
+                                  </a>
+                                ) : (
+                                  <span className="font-semibold">{leadArticle.featuredImage.sourceTitle}</span>
+                                )}
+                              </span>
+                            )}
+                          </figcaption>
+                        )}
+                      </figure>
+                    )}
+
                     <div
                       className={`my-5 p-5 ${themeClasses.bgMuted} border-l-4 border-[#0B4F3B] space-y-2`}
                     >
@@ -1139,6 +1173,17 @@ export default function IslamPortal({
                           </div>
                         </div>
 
+                        {art.featuredImage?.url && (
+                          <div className="w-20 h-20 sm:w-24 sm:h-20 shrink-0 border border-[#141615] overflow-hidden bg-[#FAF8F5] dark:bg-[#1F2926] hidden sm:block self-center">
+                            <img
+                              src={art.featuredImage.url}
+                              alt={art.featuredImage.alt || art.title}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                          </div>
+                        )}
+
                         <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
                           <Link
                             href={`/${activeSection.slug}/${activeCategory.slug}/${art.slug}/`}
@@ -1252,6 +1297,40 @@ export default function IslamPortal({
                   </div>
                 </div>
 
+                {currentArticle.featuredImage?.url && (
+                  <figure className="space-y-2 border-2 border-[#141615] bg-[#FAF8F5] dark:bg-[#1A2421] p-2 shadow-sm">
+                    <img
+                      src={currentArticle.featuredImage.url}
+                      alt={currentArticle.featuredImage.alt || currentArticle.title}
+                      className="w-full h-auto object-cover max-h-[500px]"
+                    />
+                    {(currentArticle.featuredImage.caption || currentArticle.featuredImage.sourceTitle) && (
+                      <figcaption className="text-xs text-[#6E7571] dark:text-[#9BA39F] flex flex-wrap items-center justify-between gap-2 px-1">
+                        {currentArticle.featuredImage.caption && (
+                          <span className="font-medium italic">{currentArticle.featuredImage.caption}</span>
+                        )}
+                        {currentArticle.featuredImage.sourceTitle && (
+                          <span className="flex items-center gap-1 ml-auto">
+                            <span>উৎস:</span>
+                            {currentArticle.featuredImage.sourceUrl ? (
+                              <a
+                                href={currentArticle.featuredImage.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#0B4F3B] dark:text-[#4CC39A] underline hover:text-[#B85D19]"
+                              >
+                                {currentArticle.featuredImage.sourceTitle}
+                              </a>
+                            ) : (
+                              <span className="font-semibold">{currentArticle.featuredImage.sourceTitle}</span>
+                            )}
+                          </span>
+                        )}
+                      </figcaption>
+                    )}
+                  </figure>
+                )}
+
                 <div className={`p-6 ${themeClasses.bgAccentTint} border-2 border-[#0B4F3B] space-y-3`}>
                   <div className="flex items-center justify-between text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
                     <span>মূল দলিল ও উদ্ধৃতি</span>
@@ -1294,7 +1373,7 @@ export default function IslamPortal({
                         {sec.heading}
                       </h2>
                       <div className={`${themeClasses.textPrimary} leading-relaxed space-y-3`}>
-                        {sec.body.split(/(\[(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা)\])/g).map((part, pIdx) => {
+                        {sec.body.split(/(\[(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা)\]|\[ছবি:[\s\S]*?\])/g).map((part, pIdx) => {
                           const quranMatch = part.match(/\[কুরআন:\s*([^\]]*)\]([\s\S]*?)\[\/কুরআন\]/);
                           if (quranMatch) {
                             const ref = quranMatch[1];
@@ -1412,6 +1491,69 @@ export default function IslamPortal({
                                   {content.trim()}
                                 </p>
                               </div>
+                            );
+                          }
+
+                          const imgMatch = part.match(/\[ছবি:\s*([\s\S]*?)\]/);
+                          if (imgMatch) {
+                            const content = imgMatch[1].trim();
+                            const segments = content.split(/\s*\|\s*/);
+                            const url = segments[0] || '';
+                            let alt = '';
+                            let caption = '';
+                            let sourceTitle = '';
+                            let sourceUrl = '';
+                            let layout = 'full';
+
+                            segments.slice(1).forEach((seg) => {
+                              if (seg.startsWith('অল্ট:')) alt = seg.replace(/^অল্ট:\s*/, '').trim();
+                              else if (seg.startsWith('ক্যাপশন:')) caption = seg.replace(/^ক্যাপশন:\s*/, '').trim();
+                              else if (seg.startsWith('উৎস:')) sourceTitle = seg.replace(/^উৎস:\s*/, '').trim();
+                              else if (seg.startsWith('লিংক:')) sourceUrl = seg.replace(/^লিংক:\s*/, '').trim();
+                              else if (seg.startsWith('বিন্যাস:')) {
+                                const l = seg.replace(/^বিন্যাস:\s*/, '').trim();
+                                if (l.includes('কেন্দ্রিক')) layout = 'center';
+                              }
+                            });
+
+                            return (
+                              <figure
+                                key={pIdx}
+                                className={`my-6 space-y-2 ${
+                                  layout === 'center' ? 'max-w-xl mx-auto' : 'w-full'
+                                }`}
+                              >
+                                <div className="border-2 border-[#141615] bg-[#FAF8F5] dark:bg-[#1A2421] p-1.5 shadow-sm">
+                                  <img
+                                    src={url}
+                                    alt={alt || caption || 'প্রবন্ধের চিত্র'}
+                                    className="w-full h-auto object-cover max-h-[480px]"
+                                    loading="lazy"
+                                  />
+                                </div>
+                                {(caption || sourceTitle) && (
+                                  <figcaption className="text-xs text-[#6E7571] dark:text-[#9BA39F] flex flex-wrap items-center justify-between gap-2 px-1">
+                                    {caption && <span className="font-medium italic">{caption}</span>}
+                                    {sourceTitle && (
+                                      <span className="flex items-center gap-1 ml-auto">
+                                        <span>উৎস:</span>
+                                        {sourceUrl ? (
+                                          <a
+                                            href={sourceUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[#0B4F3B] dark:text-[#4CC39A] underline hover:text-[#B85D19]"
+                                          >
+                                            {sourceTitle}
+                                          </a>
+                                        ) : (
+                                          <span className="font-semibold">{sourceTitle}</span>
+                                        )}
+                                      </span>
+                                    )}
+                                  </figcaption>
+                                )}
+                              </figure>
                             );
                           }
 

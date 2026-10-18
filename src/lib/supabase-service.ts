@@ -29,6 +29,15 @@ export function toDbArticle(art: Article, status: 'published' | 'draft' | 'revie
     key_takeaways: art.keyTakeaways || [],
     content_sections: art.contentSections || [],
     references: art.references || [],
+    featured_image: art.featuredImage
+      ? {
+          url: art.featuredImage.url,
+          alt: art.featuredImage.alt,
+          caption: art.featuredImage.caption,
+          source_title: art.featuredImage.sourceTitle,
+          source_url: art.featuredImage.sourceUrl
+        }
+      : undefined,
     views_count: 0
   };
 }
@@ -52,7 +61,16 @@ export function toAppArticle(db: DbArticle): Article {
     summary: db.summary,
     keyTakeaways: db.key_takeaways || [],
     contentSections: db.content_sections || [],
-    references: db.references || []
+    references: db.references || [],
+    featuredImage: db.featured_image
+      ? {
+          url: db.featured_image.url,
+          alt: db.featured_image.alt,
+          caption: db.featured_image.caption,
+          sourceTitle: db.featured_image.source_title,
+          sourceUrl: db.featured_image.source_url
+        }
+      : undefined
   };
 }
 

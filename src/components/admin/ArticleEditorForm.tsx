@@ -56,11 +56,13 @@ import {
 } from '@/lib/supabase-service';
 import { toBengaliDigits } from '@/lib/prayer-times';
 
+import { ArticleFeaturedImage } from '@/types';
 import ArabicPalette from './editor/ArabicPalette';
 import IslamicBlockModal, { IslamicBlockType } from './editor/IslamicBlockModal';
 import FrameworkGeneratorModal, { ArticleFramework } from './editor/FrameworkGeneratorModal';
 import LiveSeoScoreCard from './editor/LiveSeoScoreCard';
 import RevisionHistoryModal from './editor/RevisionHistoryModal';
+import ImageUploadManager from './editor/ImageUploadManager';
 
 interface ArticleEditorFormProps {
   initialArticle?: DbArticle | null;
@@ -99,6 +101,11 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
   const [readTime, setReadTime] = useState(initialArticle?.read_time || '৮ মিনিট পাঠ');
   const [isLead, setIsLead] = useState(Boolean(initialArticle?.is_lead));
   const [status, setStatus] = useState<'published' | 'draft' | 'review'>(initialArticle?.status || 'published');
+
+  // Featured Hero Image
+  const [featuredImage, setFeaturedImage] = useState<ArticleFeaturedImage | undefined>(
+    initialArticle?.featured_image
+  );
 
   // Primary Citation box
   const [citationArabic, setCitationArabic] = useState(initialArticle?.citation?.arabic || '');
@@ -221,6 +228,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
           contentSections,
           references,
           tagsInput,
+          featuredImage,
           bodyLength: contentSections.reduce((acc, s) => acc + s.body.length, 0)
         };
         localStorage.setItem(draftKey, JSON.stringify(draftData));
@@ -251,6 +259,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     contentSections,
     references,
     tagsInput,
+    featuredImage,
     draftKey,
     isDraftRestored
   ]);
@@ -280,6 +289,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
       if (Array.isArray(draft.contentSections)) setContentSections(draft.contentSections);
       if (Array.isArray(draft.references)) setReferences(draft.references);
       if (draft.tagsInput) setTagsInput(draft.tagsInput);
+      if (draft.featuredImage) setFeaturedImage(draft.featuredImage);
 
       setHasRecoverableDraft(false);
       setIsDraftRestored(true);
@@ -455,6 +465,9 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     } else if (typeof data.tagsInput === 'string') {
       setTagsInput(data.tagsInput);
     }
+    if (data.featured_image || data.featuredImage) {
+      setFeaturedImage(data.featured_image || data.featuredImage);
+    }
     setSuccessMsg('নির্বাচিত সংস্করণ সফলভাবে রিস্টোর হয়েছে!');
   };
 
@@ -513,6 +526,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
       key_takeaways: cleanTakeaways,
       content_sections: cleanSections,
       references: cleanReferences,
+      featured_image: featuredImage,
       views_count: initialArticle?.views_count || 120
     };
 
@@ -543,7 +557,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     if (!bodyText) return null;
 
     const parts = bodyText.split(
-      /(\[(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা)\])/g
+      /(\[(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা)\]|\[ছবি:[\s\S]*?\])/g
     );
 
     return parts.map((part, pIdx) => {
@@ -699,6 +713,70 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
               {content.trim()}
             </p>
           </div>
+        );
+      }
+
+      // 6. In-Article Image Block
+      const imgMatch = part.match(/\[ছবি:\s*([\s\S]*?)\]/);
+      if (imgMatch) {
+        const content = imgMatch[1].trim();
+        const segments = content.split(/\s*\|\s*/);
+        const url = segments[0] || '';
+        let alt = '';
+        let caption = '';
+        let sourceTitle = '';
+        let sourceUrl = '';
+        let layout = 'full';
+
+        segments.slice(1).forEach((seg) => {
+          if (seg.startsWith('অল্ট:')) alt = seg.replace(/^অল্ট:\s*/, '').trim();
+          else if (seg.startsWith('ক্যাপশন:')) caption = seg.replace(/^ক্যাপশন:\s*/, '').trim();
+          else if (seg.startsWith('উৎস:')) sourceTitle = seg.replace(/^উৎস:\s*/, '').trim();
+          else if (seg.startsWith('লিংক:')) sourceUrl = seg.replace(/^লিংক:\s*/, '').trim();
+          else if (seg.startsWith('বিন্যাস:')) {
+            const l = seg.replace(/^বিন্যাস:\s*/, '').trim();
+            if (l.includes('কেন্দ্রিক')) layout = 'center';
+          }
+        });
+
+        return (
+          <figure
+            key={pIdx}
+            className={`my-6 space-y-2 ${
+              layout === 'center' ? 'max-w-xl mx-auto' : 'w-full'
+            }`}
+          >
+            <div className="border-2 border-[#141615] bg-[#FAF8F5] dark:bg-[#1A2421] p-1.5 shadow-sm">
+              <img
+                src={url}
+                alt={alt || caption || 'প্রবন্ধের চিত্র'}
+                className="w-full h-auto object-cover max-h-[480px]"
+                loading="lazy"
+              />
+            </div>
+            {(caption || sourceTitle) && (
+              <figcaption className="text-xs text-[#6E7571] dark:text-[#9BA39F] flex flex-wrap items-center justify-between gap-2 px-1">
+                {caption && <span className="font-medium italic">{caption}</span>}
+                {sourceTitle && (
+                  <span className="flex items-center gap-1 ml-auto">
+                    <span>উৎস:</span>
+                    {sourceUrl ? (
+                      <a
+                        href={sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#0B4F3B] dark:text-[#4CC39A] underline hover:text-[#B85D19]"
+                      >
+                        {sourceTitle}
+                      </a>
+                    ) : (
+                      <span className="font-semibold">{sourceTitle}</span>
+                    )}
+                  </span>
+                )}
+              </figcaption>
+            )}
+          </figure>
         );
       }
 
@@ -1162,6 +1240,17 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
                       <span className="truncate">লাইভ ঠিকানা: {liveUrl}</span>
                     </div>
                   )}
+                </div>
+
+                {/* Featured Hero Image Manager */}
+                <div className="pt-3 border-t border-[#DCD7CD] dark:border-[#2A3834]">
+                  <ImageUploadManager
+                    value={featuredImage}
+                    onChange={setFeaturedImage}
+                    titleSuggestion={title}
+                    label="প্রবন্ধের প্রধান প্রচ্ছদ ছবি (Featured Hero Image)"
+                    helperText="এই ছবিটি প্রবন্ধের শীর্ষে, সোশ্যাল মিডিয়া কার্ডে (OG Image) এবং গুগল সার্চের স্নsnippet এ প্রদর্শিত হবে"
+                  />
                 </div>
 
                 {/* Lead Article Toggle */}
@@ -1628,6 +1717,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
                 references={references}
                 tags={tagsInput.split(',').map((t) => t.trim()).filter(Boolean)}
                 wordCount={stats.words}
+                featuredImage={featuredImage}
               />
             )}
           </div>
@@ -1700,6 +1790,41 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
                     <span>তাহকীক: <strong>{reviewer}</strong></span>
                   </div>
                 </div>
+
+                {/* Featured Hero Image Preview */}
+                {featuredImage?.url && (
+                  <figure className="space-y-2 border-2 border-[#141615] bg-[#FAF8F5] dark:bg-[#1A2421] p-2 shadow-sm">
+                    <img
+                      src={featuredImage.url}
+                      alt={featuredImage.alt || title || 'প্রচ্ছদ চিত্র'}
+                      className="w-full h-auto object-cover max-h-[420px]"
+                    />
+                    {(featuredImage.caption || featuredImage.sourceTitle) && (
+                      <figcaption className="text-xs text-[#6E7571] dark:text-[#9BA39F] flex flex-wrap items-center justify-between gap-2 px-1">
+                        {featuredImage.caption && (
+                          <span className="font-medium italic">{featuredImage.caption}</span>
+                        )}
+                        {featuredImage.sourceTitle && (
+                          <span className="flex items-center gap-1 ml-auto">
+                            <span>উৎস:</span>
+                            {featuredImage.sourceUrl ? (
+                              <a
+                                href={featuredImage.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#0B4F3B] dark:text-[#4CC39A] underline hover:text-[#B85D19]"
+                              >
+                                {featuredImage.sourceTitle}
+                              </a>
+                            ) : (
+                              <span className="font-semibold">{featuredImage.sourceTitle}</span>
+                            )}
+                          </span>
+                        )}
+                      </figcaption>
+                    )}
+                  </figure>
+                )}
 
                 {/* Hero Citation */}
                 {citationBengali && (

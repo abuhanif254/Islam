@@ -429,7 +429,7 @@ export function getArticleJsonLd(
       url: `${SITE_URL}/${section.slug}/${category.slug}/`
     },
     image: [
-      `${SITE_URL}/og/${section.slug}.png`
+      article.featuredImage?.url || `${SITE_URL}/og/${section.slug}.png`
     ],
     wordCount: article.contentSections.reduce((acc, s) => acc + s.body.length, 0),
     // Speakable Specification for Smart Assistants & Voice Search

@@ -67,10 +67,10 @@ export async function generateMetadata({
       tags: article.tags,
       images: [
         {
-          url: `${SITE_URL}/og/${section.slug}.png`,
+          url: article.featuredImage?.url || `${SITE_URL}/og/${section.slug}.png`,
           width: 1200,
           height: 630,
-          alt: `${article.title} | ইসলাম`,
+          alt: article.featuredImage?.alt || `${article.title} | ইসলাম`,
           type: 'image/png',
         },
       ],
@@ -79,7 +79,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title: article.title,
       description: article.subtitle || article.summary,
-      images: [`${SITE_URL}/og/${section.slug}.png`],
+      images: [article.featuredImage?.url || `${SITE_URL}/og/${section.slug}.png`],
     },
     other: {
       'geo.region': GEO_CONSTANTS.region,
