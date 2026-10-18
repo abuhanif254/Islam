@@ -38,6 +38,8 @@ import PrayerTimesAndHijriWidget from './PrayerTimesAndHijriWidget';
 import SiteFooter from './SiteFooter';
 import SocialCardModal from './SocialCardModal';
 import CommandPaletteSearchModal from './CommandPaletteSearchModal';
+import DailyWisdomWidget from './DailyWisdomWidget';
+import { DailyWisdomItem } from '@/data/daily-wisdom';
 
 export interface IslamPortalProps {
   initialSectionSlug?: string;
@@ -109,6 +111,35 @@ export default function IslamPortal({
   const [directoryModalOpen, setDirectoryModalOpen] = useState<boolean>(false);
   const [socialCardModalOpen, setSocialCardModalOpen] = useState<boolean>(false);
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
+  const [wisdomCardArticle, setWisdomCardArticle] = useState<Article | null>(null);
+
+  const handleOpenWisdomCard = (w: DailyWisdomItem) => {
+    const syntheticArticle: Article = {
+      id: `wisdom-${w.id}`,
+      slug: `daily-wisdom-${w.id}`,
+      title: w.categoryTitle,
+      subtitle: w.lesson,
+      sectionId: 'quran',
+      categoryId: 'daily-wisdom',
+      author: 'ইসলাম পোর্টাল তাহকীক ডেস্ক',
+      reviewer: 'মুহাক্কিক পরিষদ',
+      publishedAt: 'দৈনিক প্রজ্ঞাময় বাণী',
+      readTime: '১ মিনিট পাঠ',
+      tags: ['দৈনিক বাণী', 'হিকমাহ', w.type],
+      citation: {
+        arabic: w.arabic,
+        bengali: w.bengali,
+        reference: w.reference,
+        transliteration: w.transliteration
+      },
+      summary: w.lesson,
+      keyTakeaways: [w.lesson],
+      contentSections: [{ heading: w.categoryTitle, body: w.bengali }],
+      references: [w.reference]
+    };
+    setWisdomCardArticle(syntheticArticle);
+    setSocialCardModalOpen(true);
+  };
 
   // Global Spotlight Keyboard Listener (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -1849,31 +1880,8 @@ export default function IslamPortal({
 
           {/* RIGHT 3 COLUMNS: MAGAZINE PORTAL DIGEST, DAILY VERSE & TRENDING */}
           <aside className="lg:col-span-3 space-y-6">
-            <div className={`${themeClasses.bgSurface} border-2 ${themeClasses.borderStrong}`}>
-              <div className="bg-[#0B4F3B] text-white px-4 py-2.5 flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <Compass className="w-4 h-4 text-[#E8A86B]" />
-                  <span>আজকের নির্বাচিত আয়াত</span>
-                </span>
-                <span className="text-[11px] bg-[#083B2C] px-2 py-0.5 border border-[#176B52]">
-                  তিলাওয়াত ও চিন্তা
-                </span>
-              </div>
-              <div className="p-4 space-y-3">
-                <p
-                  dir="rtl"
-                  className="font-arabic text-xl leading-loose text-right text-[#0B4F3B] dark:text-[#4CC39A] font-bold"
-                >
-                  أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ
-                </p>
-                <p className="text-sm font-bold">
-                  “জেনে রেখো, কেবল আল্লাহর যিকিরেই (স্মরণে) হৃদয়সমূহ প্রশান্তি লাভ করে।”
-                </p>
-                <div className={`text-xs font-semibold ${themeClasses.ochreText}`}>
-                  — সূরা আর-রাদ, আয়াত: ২৮
-                </div>
-              </div>
-            </div>
+            {/* DAILY WISDOM WIDGET WITH AUDIO RECITATION & VIRAL CARD MAKER */}
+            <DailyWisdomWidget onGenerateCard={handleOpenWisdomCard} />
 
             <div className={`${themeClasses.bgSurface} border-2 ${themeClasses.borderStrong}`}>
               <div className="bg-[#141615] text-white px-4 py-3 border-b-2 border-[#B85D19] flex items-center justify-between">
@@ -2061,13 +2069,16 @@ export default function IslamPortal({
       />
 
       {/* 9. VIRAL SOCIAL QUOTE & DAWAH CARD GENERATOR MODAL */}
-      {currentArticle && (
+      {(wisdomCardArticle || currentArticle) && (
         <SocialCardModal
           isOpen={socialCardModalOpen}
-          onClose={() => setSocialCardModalOpen(false)}
-          article={currentArticle}
-          sectionName={activeSection.name}
-          categoryName={activeCategory.name}
+          onClose={() => {
+            setSocialCardModalOpen(false);
+            setWisdomCardArticle(null);
+          }}
+          article={wisdomCardArticle || currentArticle}
+          sectionName={wisdomCardArticle ? 'দৈনিক হিকমাহ' : activeSection.name}
+          categoryName={wisdomCardArticle ? 'প্রজ্ঞাময় বাণী' : activeCategory.name}
         />
       )}
 
