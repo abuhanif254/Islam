@@ -6,6 +6,11 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- ০. profiles_role_check কনস্ট্রেইন্টে 'superadmin' সাপোর্ট নিশ্চিত করা
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check 
+  CHECK (role IN ('user', 'moderator', 'admin', 'superadmin'));
+
 -- ১. auth.users টেবিলে নিরাপদ অ্যাডমিন অ্যাকাউন্ট তৈরি / আপডেট
 DO $$
 DECLARE
