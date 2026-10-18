@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS public.articles (
   key_takeaways TEXT[] DEFAULT '{}',
   content_sections JSONB DEFAULT '[]'::jsonb,
   "references" TEXT[] DEFAULT '{}',
+  featured_image JSONB DEFAULT NULL,
   views_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
