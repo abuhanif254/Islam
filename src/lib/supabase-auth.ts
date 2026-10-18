@@ -392,10 +392,10 @@ export async function getCurrentAdminSession(): Promise<AdminUserSession | null>
       }
 
       updateAdminActivity();
-      const fullName = profile.full_name || 'মুহাক্কিক অ্যাডমিন';
+      const fullName = profile.full_name || 'মুহাম্মদ বাইতুল্লাহ (সুপার অ্যাডমিন)';
       return {
         id: session.user.id,
-        email: session.user.email || 'admin@islam.gov.bd',
+        email: session.user.email || 'mohammadbitullah@gmail.com',
         name: fullName,
         fullName,
         role: profile.role,
@@ -461,7 +461,7 @@ export async function signInAdminEnhanced({
     }
   };
 
-  const expectedPasskey = process.env.NEXT_PUBLIC_ADMIN_SECURITY_PASSKEY || 'ISLAM-786-MASTER';
+  const expectedPasskey = process.env.NEXT_PUBLIC_ADMIN_SECURITY_PASSKEY || '1370';
   const cleanPasskey = (securityPasskey || '').trim();
 
   // If live Supabase
@@ -483,13 +483,49 @@ export async function signInAdminEnhanced({
         return { success: true };
       }
 
-      // Password Auth
+      // 2FA Master Passkey Validation (Dual-Factor Gate: 1370)
+      if (cleanPasskey !== expectedPasskey) {
+        const fail = recordFailedAdminAttempt();
+        await ensureMinDelay();
+        await logSecurityAudit('login_failed', email, undefined, { reason: 'Invalid 2FA Master Passkey' });
+        return {
+          success: false,
+          lockoutSeconds: fail.isLocked ? fail.remainingSeconds : undefined,
+          error: 'সিক্রেট অ্যাডমিন পাসকী (২য় ফ্যাক্টর) ভুল।'
+        };
+      }
+
+      // Password Auth with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password: password || ''
       });
 
       if (error || !data.user) {
+        // If Supabase user was not found or password mismatched, check designated admin fallback
+        if (
+          email.toLowerCase() === 'mohammadbitullah@gmail.com' &&
+          password === ',.,.25ab2292,,' &&
+          cleanPasskey === expectedPasskey
+        ) {
+          resetAdminLockout();
+          updateAdminActivity();
+          const fullName = 'মুহাম্মদ বাইতুল্লাহ (সুপার অ্যাডমিন)';
+          const adminSession: AdminUserSession = {
+            id: 'admin-master-mohammadbitullah',
+            email: 'mohammadbitullah@gmail.com',
+            name: fullName,
+            fullName,
+            role: 'superadmin'
+          };
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(LOCAL_STORAGE_ADMIN_KEY, JSON.stringify(adminSession));
+          }
+          await ensureMinDelay();
+          await logSecurityAudit('login_success', email, adminSession.id, { role: 'superadmin', mode: 'designated_admin' });
+          return { success: true };
+        }
+
         const fail = recordFailedAdminAttempt();
         await ensureMinDelay();
         await logSecurityAudit('login_failed', email, undefined, { reason: error?.message || 'Invalid credentials' });
@@ -523,27 +559,14 @@ export async function signInAdminEnhanced({
         };
       }
 
-      // Secondary 2FA Master Passkey Validation (Dual-Factor)
-      if (cleanPasskey && cleanPasskey !== expectedPasskey && cleanPasskey !== '7862026') {
-        await supabase.auth.signOut();
-        const fail = recordFailedAdminAttempt();
-        await ensureMinDelay();
-        await logSecurityAudit('login_failed', email, data.user.id, { reason: 'Invalid 2FA Master Passkey' });
-        return {
-          success: false,
-          lockoutSeconds: fail.isLocked ? fail.remainingSeconds : undefined,
-          error: 'সিক্রেট অ্যাডমিন পাসকী (২য় ফ্যাক্টর) ভুল।'
-        };
-      }
-
       // Authenticated successfully!
       resetAdminLockout();
       updateAdminActivity();
       const adminSession: AdminUserSession = {
         id: data.user.id,
         email: data.user.email || email,
-        name: profile.full_name || 'মুহাক্কিক অ্যাডমিন',
-        fullName: profile.full_name || 'মুহাক্কিক অ্যাডমিন',
+        name: profile.full_name || 'মুহাম্মদ বাইতুল্লাহ (সুপার অ্যাডমিন)',
+        fullName: profile.full_name || 'মুহাম্মদ বাইতুল্লাহ (সুপার অ্যাডমিন)',
         role: profile.role,
         avatarUrl: profile.avatar_url
       };
@@ -561,18 +584,18 @@ export async function signInAdminEnhanced({
     }
   }
 
-  // Local/Offline Fallback Authentication
-  const isDemoPass = password === 'islam@2026';
-  const isDemoEmail = email === 'admin@islam.gov.bd';
-  const isPasskeyValid = !cleanPasskey || cleanPasskey === expectedPasskey || cleanPasskey === '7862026';
+  // Local/Offline Fallback Authentication with User's Strict Credentials
+  const isDesignatedEmail = email.toLowerCase() === 'mohammadbitullah@gmail.com';
+  const isDesignatedPass = password === ',.,.25ab2292,,';
+  const isDesignatedPasskey = cleanPasskey === expectedPasskey;
 
-  if ((isDemoEmail && isDemoPass && isPasskeyValid) || (isDemoPass && isPasskeyValid)) {
+  if (isDesignatedEmail && isDesignatedPass && isDesignatedPasskey) {
     resetAdminLockout();
     updateAdminActivity();
-    const fullName = 'প্রফেসর ড. আব্দুল্লাহ আল-মামুন (সুপার অ্যাডমিন)';
+    const fullName = 'মুহাম্মদ বাইতুল্লাহ (সুপার অ্যাডমিন)';
     const adminSession: AdminUserSession = {
-      id: 'admin-local-master-1',
-      email,
+      id: 'admin-master-mohammadbitullah',
+      email: 'mohammadbitullah@gmail.com',
       name: fullName,
       fullName,
       role: 'superadmin'

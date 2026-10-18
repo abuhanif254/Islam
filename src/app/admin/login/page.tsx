@@ -10,16 +10,12 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
-  ArrowRight,
-  Sparkles,
   AlertCircle,
   CheckCircle,
-  Database,
   ArrowLeft,
   ShieldAlert,
   Fingerprint,
-  Clock,
-  Layers
+  Sparkles
 } from 'lucide-react';
 import { IslamicGeometricEmblem } from '@/components/IslamicGeometricEmblem';
 import {
@@ -37,13 +33,12 @@ export default function AdminLoginPage() {
   const [securityPasskey, setSecurityPasskey] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasskey, setShowPasskey] = useState(false);
-  const [honeypot, setHoneypot] = useState(''); // Anti-bot trap
+  const [honeypot, setHoneypot] = useState(''); // Invisible Anti-bot trap
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isLiveSupabase, setIsLiveSupabase] = useState(false);
   const [lockoutRemaining, setLockoutRemaining] = useState<number>(0);
-  const [showDevCredentials, setShowDevCredentials] = useState(false);
 
   useEffect(() => {
     setIsLiveSupabase(isSupabaseConfigured());
@@ -74,7 +69,7 @@ export default function AdminLoginPage() {
     setSuccessMsg(null);
 
     if (lockoutRemaining > 0) {
-      setErrorMsg(`অ্যাকাউন্ট সাময়িক লকডাউন রয়েছে। অপেক্ষা করুন: ${lockoutRemaining} সেকেন্ড।`);
+      setErrorMsg(`নিরাপত্তা লকডাউন সক্রিয়। অপেক্ষা করুন: ${lockoutRemaining} সেকেন্ড।`);
       return;
     }
 
@@ -84,6 +79,10 @@ export default function AdminLoginPage() {
     }
     if (!password.trim()) {
       setErrorMsg('মাস্টার পাসওয়ার্ড প্রদান করুন।');
+      return;
+    }
+    if (!securityPasskey.trim()) {
+      setErrorMsg('২য় ফ্যাক্টর (2FA) সিক্রেট পাসকী প্রদান করুন।');
       return;
     }
 
@@ -120,7 +119,7 @@ export default function AdminLoginPage() {
     setSuccessMsg(null);
 
     if (lockoutRemaining > 0) {
-      setErrorMsg(`অ্যাকাউন্ট সাময়িক লকডাউন রয়েছে। অপেক্ষা করুন: ${lockoutRemaining} সেকেন্ড।`);
+      setErrorMsg(`নিরাপত্তা লকডাউন সক্রিয়। অপেক্ষা করুন: ${lockoutRemaining} সেকেন্ড।`);
       return;
     }
 
@@ -152,13 +151,6 @@ export default function AdminLoginPage() {
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail('admin@islam.gov.bd');
-    setPassword('islam@2026');
-    setSecurityPasskey('ISLAM-786-MASTER');
-    setErrorMsg(null);
-  };
-
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-[#141615] flex flex-col justify-between py-8 px-4 sm:px-6 font-sans">
       {/* TOP HEADER */}
@@ -177,7 +169,7 @@ export default function AdminLoginPage() {
             <span>ZERO-TRUST RLS</span>
           </span>
           <div className="text-[10px] font-mono font-bold text-[#B85D19] bg-[#F6ECE3] px-2 py-0.5 border border-[#B85D19]">
-            {isLiveSupabase ? 'CLOUD SECURED' : 'LOCAL DEV READY'}
+            {isLiveSupabase ? 'CLOUD SECURED' : 'LOCAL PROTECTED'}
           </div>
         </div>
       </div>
@@ -296,7 +288,7 @@ export default function AdminLoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@islam.gov.bd"
+                  placeholder="mohammadbitullah@gmail.com"
                   required
                   disabled={loading || lockoutRemaining > 0}
                   className="w-full pl-9 pr-3 py-2.5 bg-[#FAF8F5] border-2 border-[#141615] text-sm text-[#141615] focus:outline-none focus:ring-1 focus:ring-[#0B4F3B] disabled:opacity-50"
@@ -314,7 +306,7 @@ export default function AdminLoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
                   required
                   disabled={loading || lockoutRemaining > 0}
                   className="w-full pl-9 pr-10 py-2.5 bg-[#FAF8F5] border-2 border-[#141615] text-sm text-[#141615] focus:outline-none focus:ring-1 focus:ring-[#0B4F3B] disabled:opacity-50"
@@ -336,16 +328,17 @@ export default function AdminLoginPage() {
                   <Fingerprint className="w-3.5 h-3.5 text-[#0B4F3B]" />
                   <span>২য় ফ্যাক্টর: সিক্রেট অ্যাডমিন পাসকী (2FA)</span>
                 </label>
-                <span className="text-[10px] text-[#B85D19] font-bold">2FA REQUIREMENT</span>
+                <span className="text-[10px] text-[#B85D19] font-bold">2FA REQUIRED</span>
               </div>
               <div className="relative">
                 <input
                   type={showPasskey ? 'text' : 'password'}
                   value={securityPasskey}
                   onChange={(e) => setSecurityPasskey(e.target.value)}
-                  placeholder="সিক্রেট সিকিউরিটি পিন বা মাস্টার পাসকী"
+                  placeholder="৪-ডিজিট সিক্রেট কোড লিখুন"
+                  required
                   disabled={loading || lockoutRemaining > 0}
-                  className="w-full pl-3 pr-10 py-2.5 bg-[#FAF8F5] border-2 border-[#141615] text-sm text-[#141615] focus:outline-none focus:ring-1 focus:ring-[#0B4F3B] disabled:opacity-50 font-mono"
+                  className="w-full pl-3 pr-10 py-2.5 bg-[#FAF8F5] border-2 border-[#141615] text-sm text-[#141615] focus:outline-none focus:ring-1 focus:ring-[#0B4F3B] disabled:opacity-50 font-mono tracking-widest"
                 />
                 <button
                   type="button"
@@ -356,7 +349,7 @@ export default function AdminLoginPage() {
                 </button>
               </div>
               <p className="text-[11px] text-[#6E7571] mt-1">
-                পাসওয়ার্ড লিক হলেও এই ২য় গোপন কী ছাড়া সিস্টেমে ঢোকা অসম্ভব।
+                পাসওয়ার্ড লিক হলেও এই গোপন ২য় ফ্যাক্টর ছাড়া অ্যাডমিন প্যানেলে প্রবেশ অসম্ভব।
               </p>
             </div>
 
@@ -381,14 +374,14 @@ export default function AdminLoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@islam.gov.bd"
+                  placeholder="mohammadbitullah@gmail.com"
                   required
                   disabled={loading || lockoutRemaining > 0}
                   className="w-full pl-9 pr-3 py-2.5 bg-[#FAF8F5] border-2 border-[#141615] text-sm text-[#141615] focus:outline-none focus:ring-1 focus:ring-[#0B4F3B] disabled:opacity-50"
                 />
               </div>
               <p className="text-[11px] text-[#6E7571] mt-1">
-                পাসওয়ার্ড টাইপ করতে হবে না; শুধুমাত্র যাচাইকৃত অ্যাডমিন ইমেইলে সুরক্ষিত ওটিপি লিংক যাবে।
+                শুধুমাত্র যাচাইকৃত অনুমোদিত অ্যাডমিন ইমেইলে সুরক্ষিত ওয়ান-টাইম ওটিপি লিংক প্রেরিত হবে।
               </p>
             </div>
 
@@ -398,43 +391,10 @@ export default function AdminLoginPage() {
               className="w-full py-3 bg-[#B85D19] hover:bg-[#9B4E15] text-white text-sm font-bold border-2 border-[#141615] shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className="w-4 h-4" />
-              <span>{loading ? 'লিংক পাঠানো হচ্ছে...' : 'ওয়ান-ক্লিক ম্যাজিক লিংক পাঠান'}</span>
+              <span>{loading ? 'লিংক পাঠানো হচ্ছে...' : 'ম্যাজিক লিংক পাঠান'}</span>
             </button>
           </form>
         )}
-
-        {/* DEVELOPER / RESCUE CONSOLE (COLLAPSIBLE) */}
-        <div className="pt-2 border-t-2 border-[#141615] text-xs">
-          <button
-            type="button"
-            onClick={() => setShowDevCredentials(!showDevCredentials)}
-            className="w-full flex items-center justify-between text-[#6E7571] hover:text-[#0B4F3B] font-semibold py-1"
-          >
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#0B4F3B]" />
-              <span>লোকাল টেস্ট ও এমার্জেন্সি ক্রেডেনশিয়াল গাইড</span>
-            </span>
-            <span className="text-[10px]">{showDevCredentials ? '▲ বন্ধ' : '▼ প্রদর্শন'}</span>
-          </button>
-
-          {showDevCredentials && (
-            <div className="mt-2 p-3 bg-[#FAF8F5] border border-[#DCD7CD] space-y-1.5 text-[11px]">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-[#141615]">লোকাল টেস্ট ক্রেডেনশিয়াল:</span>
-                <button
-                  type="button"
-                  onClick={handleFillDemo}
-                  className="font-bold text-[#0B4F3B] hover:underline"
-                >
-                  অটো ফিল করুন
-                </button>
-              </div>
-              <div>ইমেইল: <code className="bg-[#EFEBE4] px-1 font-mono">admin@islam.gov.bd</code></div>
-              <div>পাসওয়ার্ড: <code className="bg-[#EFEBE4] px-1 font-mono">islam@2026</code></div>
-              <div>২য় কী: <code className="bg-[#EFEBE4] px-1 font-mono">ISLAM-786-MASTER</code></div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* FOOTER */}
