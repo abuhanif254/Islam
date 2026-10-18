@@ -38,6 +38,7 @@ export function toDbArticle(art: Article, status: 'published' | 'draft' | 'revie
           source_url: art.featuredImage.sourceUrl
         }
       : undefined,
+    faqs: art.faqs || [],
     views_count: 0
   };
 }
@@ -70,7 +71,8 @@ export function toAppArticle(db: DbArticle): Article {
           sourceTitle: db.featured_image.source_title,
           sourceUrl: db.featured_image.source_url
         }
-      : undefined
+      : undefined,
+    faqs: db.faqs || []
   };
 }
 

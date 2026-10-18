@@ -137,6 +137,13 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
       : ['']
   );
 
+  // FAQs for Google Rich Snippets
+  const [faqs, setFaqs] = useState<{ question: string; answer: string }[]>(
+    initialArticle?.faqs && initialArticle.faqs.length > 0
+      ? initialArticle.faqs
+      : [{ question: '', answer: '' }]
+  );
+
   // Tags as string
   const [tagsInput, setTagsInput] = useState(initialArticle?.tags ? initialArticle.tags.join(', ') : '');
 
@@ -227,6 +234,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
           keyTakeaways,
           contentSections,
           references,
+          faqs,
           tagsInput,
           featuredImage,
           bodyLength: contentSections.reduce((acc, s) => acc + s.body.length, 0)
@@ -258,6 +266,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     keyTakeaways,
     contentSections,
     references,
+    faqs,
     tagsInput,
     featuredImage,
     draftKey,
@@ -288,6 +297,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
       if (Array.isArray(draft.keyTakeaways)) setKeyTakeaways(draft.keyTakeaways);
       if (Array.isArray(draft.contentSections)) setContentSections(draft.contentSections);
       if (Array.isArray(draft.references)) setReferences(draft.references);
+      if (Array.isArray(draft.faqs)) setFaqs(draft.faqs);
       if (draft.tagsInput) setTagsInput(draft.tagsInput);
       if (draft.featuredImage) setFeaturedImage(draft.featuredImage);
 
@@ -410,6 +420,29 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     setReferences(references.filter((_, i) => i !== index));
   };
 
+  // FAQs helpers for Google Rich Snippets
+  const handleFaqChange = (index: number, field: 'question' | 'answer', val: string) => {
+    const updated = [...faqs];
+    updated[index] = { ...updated[index], [field]: val };
+    setFaqs(updated);
+  };
+  const addFaq = () => setFaqs([...faqs, { question: '', answer: '' }]);
+  const removeFaq = (index: number) => {
+    if (faqs.length <= 1) {
+      setFaqs([{ question: '', answer: '' }]);
+      return;
+    }
+    setFaqs(faqs.filter((_, i) => i !== index));
+  };
+  const moveFaq = (index: number, direction: 'up' | 'down') => {
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= faqs.length) return;
+    const updated = [...faqs];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIdx, 0, moved);
+    setFaqs(updated);
+  };
+
   // Open Block Builder Modal
   const openBlockBuilder = (sectionIdx: number) => {
     setTargetSectionIndex(sectionIdx);
@@ -468,6 +501,9 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     if (data.featured_image || data.featuredImage) {
       setFeaturedImage(data.featured_image || data.featuredImage);
     }
+    if (Array.isArray(data.faqs)) {
+      setFaqs(data.faqs);
+    }
     setSuccessMsg('নির্বাচিত সংস্করণ সফলভাবে রিস্টোর হয়েছে!');
   };
 
@@ -501,6 +537,9 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
       (s) => s.heading.trim().length > 0 || s.body.trim().length > 0
     );
     const cleanReferences = references.filter((r) => r.trim().length > 0);
+    const cleanFaqs = faqs.filter(
+      (f) => f.question.trim().length > 0 || f.answer.trim().length > 0
+    );
 
     const articleData: DbArticle = {
       id: finalId,
@@ -526,6 +565,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
       key_takeaways: cleanTakeaways,
       content_sections: cleanSections,
       references: cleanReferences,
+      faqs: cleanFaqs,
       featured_image: featuredImage,
       views_count: initialArticle?.views_count || 120
     };
@@ -1666,6 +1706,88 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
                   </div>
                 </div>
 
+                {/* FAQs Builder for Google Rich Snippets */}
+                <div className="pt-4 border-t border-[#DCD7CD] dark:border-[#2A3834] space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <label className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-1.5">
+                        <HelpCircle className="w-4 h-4 text-[#B85D19]" />
+                        <span>প্রামাণ্য প্রশ্নোত্তর (Google FAQPage Rich Snippets)</span>
+                      </label>
+                      <p className="text-[11px] text-[#6E7571]">
+                        গুগল সার্চ ফলাফলে সরাসরি ড্রপডাউন প্রশ্নোত্তর পেতে এখানে প্রাসঙ্গিক প্রশ্ন ও উত্তর লিখুন।
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addFaq}
+                      className="px-2.5 py-1 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs font-bold flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ নতুন FAQ</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {faqs.map((faq, fIdx) => (
+                      <div
+                        key={fIdx}
+                        className="p-3 bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47] space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
+                            প্রশ্ন {toBengaliDigits(fIdx + 1)}:
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveFaq(fIdx, 'up')}
+                              disabled={fIdx === 0}
+                              className="p-1 border border-[#DCD7CD] text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
+                              title="উপরে নিন"
+                            >
+                              <ArrowUp className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveFaq(fIdx, 'down')}
+                              disabled={fIdx === faqs.length - 1}
+                              className="p-1 border border-[#DCD7CD] text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
+                              title="নিচে নিন"
+                            >
+                              <ArrowDown className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeFaq(fIdx)}
+                              className="p-1 border border-[#DCD7CD] text-[#D9381E] hover:bg-[#FBEAE8]"
+                              title="মুছে ফেলুন"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <input
+                          type="text"
+                          value={faq.question}
+                          onChange={(e) => handleFaqChange(fIdx, 'question', e.target.value)}
+                          placeholder="যেমন: সূরা আল-ফাতিহাকে কেন উম্মুল কুরআন বলা হয়?"
+                          className="w-full p-2 text-xs bg-white dark:bg-[#232F2B] border border-[#DCD7CD] dark:border-[#3B4D47] font-semibold"
+                        />
+
+                        <textarea
+                          rows={2}
+                          value={faq.answer}
+                          onChange={(e) => handleFaqChange(fIdx, 'answer', e.target.value)}
+                          placeholder="সংক্ষিপ্ত, স্পষ্ট ও প্রামাণ্য উত্তর লিখুন..."
+                          className="w-full p-2 text-xs bg-white dark:bg-[#232F2B] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Tags */}
                 <div className="pt-3 border-t border-[#DCD7CD] dark:border-[#2A3834] space-y-2">
                   <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1]">
@@ -1718,6 +1840,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
                 tags={tagsInput.split(',').map((t) => t.trim()).filter(Boolean)}
                 wordCount={stats.words}
                 featuredImage={featuredImage}
+                faqs={faqs}
               />
             )}
           </div>

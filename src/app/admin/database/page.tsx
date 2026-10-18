@@ -421,8 +421,9 @@ export default function AdminDatabasePage() {
         <p className="text-xs text-[#6E7571] leading-relaxed">
           আপনি যদি পূর্বেই ডাটাবেজ তৈরি করে থাকেন, তবে পুরো টেবিল পুনরায় তৈরি করার প্রয়োজন নেই। Supabase <strong>SQL Editor</strong>-এ শুধুমাত্র নিচের ১-লাইনের কোডটি রান করুন:
         </p>
-        <div className="p-3 bg-[#FFFFFF] border border-[#DCD7CD] font-mono text-xs text-[#0B4F3B] font-bold select-all flex items-center justify-between">
-          <span>ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS featured_image JSONB DEFAULT NULL;</span>
+        <div className="p-3 bg-[#FFFFFF] border border-[#DCD7CD] font-mono text-xs text-[#0B4F3B] font-bold select-all space-y-1">
+          <div>ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS featured_image JSONB DEFAULT NULL;</div>
+          <div>ALTER TABLE public.articles ADD COLUMN IF NOT EXISTS faqs JSONB DEFAULT '[]'::jsonb;</div>
         </div>
       </div>
 

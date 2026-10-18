@@ -78,6 +78,10 @@ export interface DbArticle {
     source_title?: string;
     source_url?: string;
   };
+  faqs?: {
+    question: string;
+    answer: string;
+  }[];
   created_at?: string;
   updated_at?: string;
 }

@@ -33,6 +33,7 @@ interface LiveSeoScoreCardProps {
   tags: string[];
   wordCount: number;
   featuredImage?: ArticleFeaturedImage;
+  faqs?: { question: string; answer: string }[];
 }
 
 export default function LiveSeoScoreCard({
@@ -50,7 +51,8 @@ export default function LiveSeoScoreCard({
   references,
   tags,
   wordCount,
-  featuredImage
+  featuredImage,
+  faqs
 }: LiveSeoScoreCardProps) {
   const [devicePreview, setDevicePreview] = useState<'desktop' | 'mobile'>('desktop');
 
@@ -186,6 +188,21 @@ export default function LiveSeoScoreCard({
       tip: `বর্তমান ট্যাগ: ${validTags.length}টি।`
     });
 
+    // 10. FAQ Rich Snippets (At least 1-2 FAQs) - 5 pts
+    const validFaqs = (faqs || []).filter((f) => f.question.trim().length > 0 && f.answer.trim().length > 0);
+    const faqPassed = validFaqs.length >= 2;
+    const faqScore = faqPassed ? 5 : validFaqs.length >= 1 ? 3 : 0;
+    score += faqScore;
+    items.push({
+      label: 'গুগল রিচ স্নিপেটস এফএকিউ (FAQ) উপস্থিতি',
+      passed: faqPassed,
+      score: faqScore,
+      maxScore: 5,
+      tip: faqPassed
+        ? `উত্তম! ${toBengaliDigits(validFaqs.length)}টি প্রশ্ন-উত্তর গুগল FAQPage স্কিমার জন্য প্রস্তুত।`
+        : 'অন্তত ২টি প্রশ্ন ও উত্তর লিখলে গুগল সার্চে ড্রপডাউন রিচ স্নিপেট পাওয়া যাবে।'
+    });
+
     return {
       totalScore: Math.min(100, Math.round(score)),
       items
@@ -199,9 +216,10 @@ export default function LiveSeoScoreCard({
     keyTakeaways,
     contentSections,
     references,
+    featuredImage,
     tags,
     wordCount,
-    featuredImage
+    faqs
   ]);
 
   const targetUrl = `${SITE_URL}/${sectionSlug || 'section'}/${categorySlug || 'category'}/${
