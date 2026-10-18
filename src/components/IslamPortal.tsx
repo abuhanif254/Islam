@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   BookOpen,
@@ -15,23 +15,28 @@ import {
   ArrowUpRight,
   Menu,
   ListFilter,
+  List,
   Globe,
   ShieldCheck,
   Award,
   Calendar,
   UserCheck,
   BookMarked,
-  Database
+  Database,
+  Hash
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeMode, ViewMode, Article, CategoryItem, SectionPage, CitationBox } from '@/types';
 import { SECTIONS_DATA } from '@/data/sections';
 import { INITIAL_ARTICLES } from '@/data/articles';
+import { toBengaliDigits } from '@/lib/prayer-times';
 import { IslamicGeometricEmblem } from './IslamicGeometricEmblem';
 import SectionHeroBanner from './SectionHeroBanner';
 import MegaDirectoryModal from './MegaDirectoryModal';
 import PrayerTimesAndHijriWidget from './PrayerTimesAndHijriWidget';
 import SiteFooter from './SiteFooter';
+import SocialCardModal from './SocialCardModal';
+import CommandPaletteSearchModal from './CommandPaletteSearchModal';
 
 export interface IslamPortalProps {
   initialSectionSlug?: string;
@@ -101,6 +106,20 @@ export default function IslamPortal({
   const [showBookmarksDrawer, setShowBookmarksDrawer] = useState<boolean>(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [directoryModalOpen, setDirectoryModalOpen] = useState<boolean>(false);
+  const [socialCardModalOpen, setSocialCardModalOpen] = useState<boolean>(false);
+  const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
+
+  // Global Spotlight Keyboard Listener (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Reading Preferences (Solid Color Themes + Font Scale)
   const [themeMode, setThemeMode] = useState<ThemeMode>('paper');
@@ -605,9 +624,18 @@ export default function IslamPortal({
                   onChange={(e) => setGlobalSearchQuery(e.target.value)}
                   placeholder="সূরা, হাদিস, নবী, সাহাবী বা প্রবন্ধ খুঁজুন"
                   aria-label="পোর্টাল অনুসন্ধান"
-                  className={`w-full pl-10 pr-8 py-2.5 text-sm ${themeClasses.bgMuted} ${themeClasses.textPrimary} border ${themeClasses.borderStrong} focus:outline-none focus:border-[#0B4F3B]`}
+                  className={`w-full pl-10 pr-16 py-2.5 text-sm ${themeClasses.bgMuted} ${themeClasses.textPrimary} border ${themeClasses.borderStrong} focus:outline-none focus:border-[#0B4F3B]`}
                 />
-                {globalSearchQuery && (
+                {!globalSearchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchModalOpen(true)}
+                    title="স্পটলাইট ও কিবোর্ড সার্চ খুলুন (Ctrl+K)"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/80 text-[#0B4F3B] dark:text-emerald-300 border border-emerald-700/30 rounded hover:bg-emerald-200 transition-colors"
+                  >
+                    <span>⌘K</span>
+                  </button>
+                ) : (
                   <button
                     type="button"
                     onClick={() => setGlobalSearchQuery('')}
@@ -1217,6 +1245,17 @@ export default function IslamPortal({
               <article
                 className={`${themeClasses.bgSurface} border-2 ${themeClasses.borderStrong} p-5 sm:p-8 space-y-6`}
               >
+                {/* Semantic Breadcrumbs for Navigation & Google Structured Snippet Context */}
+                <nav aria-label="ব্রেডক্রাম্ব" className="w-full text-xs flex flex-wrap items-center gap-1.5 pb-3 border-b border-[#DCD7CD] dark:border-[#26332F] text-[#6E7571] dark:text-[#9BA39F]">
+                  <Link href="/" className="hover:underline text-[#0B4F3B] dark:text-[#4CC39A] font-medium">হোম</Link>
+                  <span>/</span>
+                  <Link href={`/${activeSection.slug}/`} className="hover:underline text-[#0B4F3B] dark:text-[#4CC39A] font-medium">{activeSection.name}</Link>
+                  <span>/</span>
+                  <Link href={`/${activeSection.slug}/${activeCategory.slug}/`} className="hover:underline text-[#0B4F3B] dark:text-[#4CC39A] font-medium">{activeCategory.name}</Link>
+                  <span>/</span>
+                  <span className="font-semibold text-[#141615] dark:text-[#FAF8F5] truncate max-w-[280px] sm:max-w-md">{currentArticle.title}</span>
+                </nav>
+
                 <div className={`flex flex-wrap items-center justify-between gap-3 pb-4 border-b-2 ${themeClasses.borderStrong}`}>
                   <button
                     type="button"
@@ -1232,7 +1271,16 @@ export default function IslamPortal({
                     <span>ম্যাগাজিন গ্রিডে ফিরে যান</span>
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSocialCardModalOpen(true)}
+                      title="সোশ্যাল মিডিয়া ও দাওয়াহ পোস্টের জন্য সুন্দর উদ্ধৃতি কার্ড তৈরি করুন"
+                      className="px-3 py-1.5 text-xs font-bold border border-[#0B4F3B] bg-emerald-50 dark:bg-emerald-950/50 text-[#0B4F3B] dark:text-emerald-300 inline-flex items-center gap-1.5 hover:bg-[#0B4F3B] hover:text-white transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[#B85D19]" />
+                      <span>সোশ্যাল কার্ড</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => toggleBookmark(currentArticle.id)}
@@ -1366,11 +1414,48 @@ export default function IslamPortal({
                   </ul>
                 </div>
 
+                {/* Sitelink-Enabled Table of Contents (TOC) for Search Snippets & Reader Navigation */}
+                {currentArticle.contentSections && currentArticle.contentSections.length > 1 && (
+                  <nav aria-label="সূচিপত্র" className={`p-4 sm:p-5 ${themeClasses.bgMuted} border-2 border-emerald-800/20 dark:border-emerald-500/20 space-y-3`}>
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] uppercase tracking-wider">
+                      <List className="w-4 h-4" />
+                      <span>প্রবন্ধের সূচিপত্র ও বিষয়বস্তু (Table of Contents)</span>
+                    </div>
+                    <ol className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm font-medium">
+                      {currentArticle.contentSections.map((sec, sIdx) => (
+                        <li key={sIdx}>
+                          <a
+                            href={`#anushched-${sIdx + 1}`}
+                            className="inline-flex items-center gap-2 hover:text-[#0B4F3B] dark:hover:text-[#4CC39A] hover:underline"
+                          >
+                            <span className="w-5 h-5 flex items-center justify-center bg-[#0B4F3B] text-white text-[11px] font-mono font-bold shrink-0">
+                              {sIdx + 1}
+                            </span>
+                            <span className="truncate">{sec.heading}</span>
+                          </a>
+                        </li>
+                      ))}
+                    </ol>
+                  </nav>
+                )}
+
                 <div className={`space-y-6 ${bodyFontSizeClass}`}>
                   {currentArticle.contentSections.map((sec, idx) => (
                     <div key={idx} className="space-y-3">
-                      <h2 className="font-editorial text-xl sm:text-2xl font-bold text-[#0B4F3B] dark:text-[#4CC39A] border-b pb-1.5 border-[#DCD7CD] dark:border-[#26332F]">
-                        {sec.heading}
+                      <h2
+                        id={`anushched-${idx + 1}`}
+                        className="group font-editorial text-xl sm:text-2xl font-bold text-[#0B4F3B] dark:text-[#4CC39A] border-b pb-1.5 border-[#DCD7CD] dark:border-[#26332F] flex items-center justify-between scroll-mt-24"
+                      >
+                        <span>{sec.heading}</span>
+                        <a
+                          href={`#anushched-${idx + 1}`}
+                          title={`অণুচ্ছেদ ${idx + 1} সরাসরি লিংক কপি করুন`}
+                          aria-label={`অণুচ্ছেদ ${idx + 1} সরাসরি লিংক`}
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-xs px-2 py-0.5 border border-[#0B4F3B]/30 text-[#0B4F3B] dark:text-[#4CC39A] hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-opacity flex items-center gap-1"
+                        >
+                          <Hash className="w-3 h-3" />
+                          <span>লিংক</span>
+                        </a>
                       </h2>
                       <div className={`${themeClasses.textPrimary} leading-relaxed space-y-3`}>
                         {sec.body.split(/(\[(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা)\]|\[ছবি:[\s\S]*?\])/g).map((part, pIdx) => {
@@ -1866,6 +1951,23 @@ export default function IslamPortal({
           setActiveCategoryId(cat.id);
           setViewMode('magazine');
         }}
+      />
+
+      {/* 9. VIRAL SOCIAL QUOTE & DAWAH CARD GENERATOR MODAL */}
+      {currentArticle && (
+        <SocialCardModal
+          isOpen={socialCardModalOpen}
+          onClose={() => setSocialCardModalOpen(false)}
+          article={currentArticle}
+          sectionName={activeSection.name}
+          categoryName={activeCategory.name}
+        />
+      )}
+
+      {/* 10. UNIVERSAL COMMAND PALETTE & SPOTLIGHT SEARCH MODAL */}
+      <CommandPaletteSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
       />
     </div>
   );
