@@ -24,7 +24,10 @@ import {
   BookMarked,
   Database,
   Hash,
-  HelpCircle
+  HelpCircle,
+  LogIn,
+  LogOut,
+  User
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeMode, ViewMode, Article, CategoryItem, SectionPage, CitationBox } from '@/types';
@@ -40,6 +43,10 @@ import SocialCardModal from './SocialCardModal';
 import CommandPaletteSearchModal from './CommandPaletteSearchModal';
 import DailyWisdomWidget from './DailyWisdomWidget';
 import { DailyWisdomItem } from '@/data/daily-wisdom';
+import AuthModal from './AuthModal';
+import ArticleReactionBar from './ArticleReactionBar';
+import ArticleCommentsSection from './ArticleCommentsSection';
+import { UserProfile, getCurrentUser, signOutUser, subscribeToAuthState } from '@/lib/supabase-auth';
 
 export interface IslamPortalProps {
   initialSectionSlug?: string;
@@ -111,6 +118,8 @@ export default function IslamPortal({
   const [directoryModalOpen, setDirectoryModalOpen] = useState<boolean>(false);
   const [socialCardModalOpen, setSocialCardModalOpen] = useState<boolean>(false);
   const [searchModalOpen, setSearchModalOpen] = useState<boolean>(false);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [wisdomCardArticle, setWisdomCardArticle] = useState<Article | null>(null);
 
   const handleOpenWisdomCard = (w: DailyWisdomItem) => {
@@ -186,6 +195,29 @@ export default function IslamPortal({
     setTimeout(() => {
       setToastMessage(null);
     }, 3200);
+  };
+
+  // User Authentication State (Supabase / Local fallback)
+  useEffect(() => {
+    let mounted = true;
+    getCurrentUser().then((user) => {
+      if (mounted) setCurrentUser(user);
+    });
+
+    const unsubscribe = subscribeToAuthState((user) => {
+      if (mounted) setCurrentUser(user);
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await signOutUser();
+    setCurrentUser(null);
+    triggerToast('সফলভাবে লগআউট সম্পন্ন হয়েছে।');
   };
 
   const activeSection = useMemo(() => {
@@ -642,6 +674,45 @@ export default function IslamPortal({
               <Bookmark className="w-3.5 h-3.5 text-[#E8A86B]" />
               <span>সংরক্ষিত ({bookmarkedIds.length})</span>
             </button>
+
+            {/* AUTH STATUS & LOGIN TRIGGER */}
+            {currentUser ? (
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div
+                  className="inline-flex items-center gap-1.5 bg-[#083B2C] text-[#FAF8F5] px-2 py-0.5 sm:px-2.5 sm:py-1 border border-[#176B52] text-xs font-medium"
+                  title={currentUser.email}
+                >
+                  {currentUser.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.fullName}
+                      className="w-4 h-4 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-3.5 h-3.5 text-[#E8A86B]" />
+                  )}
+                  <span className="max-w-[75px] sm:max-w-[120px] truncate">{currentUser.fullName || 'ইউজার'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="লগআউট করুন"
+                  className="inline-flex items-center gap-1 bg-[#083B2C] hover:bg-red-900/60 text-[#FAF8F5] px-2 py-0.5 sm:py-1 border border-[#176B52] text-xs font-medium transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5 text-red-300" />
+                  <span className="hidden sm:inline">লগআউট</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAuthModalOpen(true)}
+                className="inline-flex items-center gap-1.5 bg-[#B85D19] hover:bg-[#964B13] text-white px-2.5 py-0.5 sm:py-1 border border-[#964B13] text-xs font-bold transition-colors shadow-sm"
+              >
+                <LogIn className="w-3.5 h-3.5 text-white" />
+                <span>লগইন / নিবন্ধন</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1468,6 +1539,18 @@ export default function IslamPortal({
                   </figure>
                 )}
 
+                {/* ARTICLE REACTION BAR (TOP QUICK ACTION) */}
+                <ArticleReactionBar
+                  articleId={currentArticle.id}
+                  articleTitle={currentArticle.title}
+                  currentUser={currentUser}
+                  onRequestAuth={() => setAuthModalOpen(true)}
+                  onScrollToComments={() => {
+                    const el = document.getElementById('article-discussion-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                />
+
                 <div className={`p-6 ${themeClasses.bgAccentTint} border-2 border-[#0B4F3B] space-y-3`}>
                   <div className="flex items-center justify-between text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
                     <span>মূল দলিল ও উদ্ধৃতি</span>
@@ -1800,6 +1883,30 @@ export default function IslamPortal({
                   </section>
                 )}
 
+                {/* BOTTOM REACTION BAR & ENGAGEMENT */}
+                <div className="pt-2">
+                  <ArticleReactionBar
+                    articleId={currentArticle.id}
+                    articleTitle={currentArticle.title}
+                    currentUser={currentUser}
+                    onRequestAuth={() => setAuthModalOpen(true)}
+                    onScrollToComments={() => {
+                      const el = document.getElementById('article-discussion-section');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  />
+                </div>
+
+                {/* THREADED COMMENTS & READER DISCUSSION SYSTEM */}
+                <div id="article-discussion-section">
+                  <ArticleCommentsSection
+                    articleId={currentArticle.id}
+                    articleTitle={currentArticle.title}
+                    currentUser={currentUser}
+                    onRequestAuth={() => setAuthModalOpen(true)}
+                  />
+                </div>
+
                 {/* RELATED ARTICLES MESH (Googlebot Crawlability & Reader Engagement) */}
                 {relatedArticles.length > 0 && (
                   <div className={`p-5 ${themeClasses.bgSurface} border ${themeClasses.borderStrong} space-y-4`}>
@@ -2086,6 +2193,16 @@ export default function IslamPortal({
       <CommandPaletteSearchModal
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
+      />
+
+      {/* 11. SUPABASE AUTH MODAL */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(user) => {
+          setCurrentUser(user);
+          triggerToast(`স্বাগতম, ${user.fullName || 'সম্মানিত পাঠক'}!`);
+        }}
       />
     </div>
   );

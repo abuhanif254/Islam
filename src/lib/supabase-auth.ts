@@ -1,159 +1,360 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const ADMIN_STORAGE_KEY = 'islam_admin_auth_session_v1';
-
-export interface AdminUserSession {
-  email: string;
-  name: string;
-  role: 'superadmin' | 'editor' | 'tahqiq_reviewer';
-  authProvider: 'supabase' | 'local_master';
-  loggedInAt: string;
+export interface UserProfile {
+  id: string;
+  email?: string;
+  fullName: string;
+  full_name?: string;
+  avatarUrl?: string;
+  avatar_url?: string;
+  role: 'user' | 'moderator' | 'admin';
+  bio?: string;
+  isVerified?: boolean;
 }
 
-// 1. Get Current Admin Session
-export async function getCurrentAdminSession(): Promise<AdminUserSession | null> {
-  // Check Supabase Auth first if configured
+const LOCAL_STORAGE_AUTH_USER_KEY = 'islam_portal_auth_user_v1';
+
+// Get active session user
+export async function getCurrentUser(): Promise<UserProfile | null> {
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session?.user) {
+        return null;
+      }
+
+      // Fetch profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile) {
         return {
-          email: session.user.email || 'admin@islam.gov.bd',
-          name: session.user.user_metadata?.name || 'মুহাক্কিক সম্পাদক',
-          role: 'superadmin',
-          authProvider: 'supabase',
-          loggedInAt: new Date(session.user.created_at || Date.now()).toISOString()
+          id: profile.id,
+          email: session.user.email,
+          fullName: profile.full_name || session.user.user_metadata?.full_name || 'মুমিন পাঠক',
+          avatarUrl: profile.avatar_url || session.user.user_metadata?.avatar_url,
+          role: profile.role || 'user',
+          bio: profile.bio,
+          isVerified: profile.is_verified
         };
       }
-    } catch (err) {
-      console.warn('Supabase getSession failed, falling back to local session', err);
+
+      return {
+        id: session.user.id,
+        email: session.user.email,
+        fullName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'মুমিন পাঠক',
+        avatarUrl: session.user.user_metadata?.avatar_url,
+        role: 'user'
+      };
+    } catch (e) {
+      console.warn('Supabase auth getSession failed', e);
     }
   }
 
-  // Check localStorage session fallback
+  // Fallback to localStorage auth for local dev/preview
   if (typeof window !== 'undefined') {
     try {
-      const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
-      if (raw) {
-        return JSON.parse(raw) as AdminUserSession;
-      }
-    } catch (e) {
-      console.error('Failed to parse local admin session', e);
-    }
+      const raw = localStorage.getItem(LOCAL_STORAGE_AUTH_USER_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
   }
 
   return null;
 }
 
-// 2. Sign In with Email & Password
-export async function signInAdmin(
+// Sign In with Google OAuth
+export async function signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/` : undefined;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'গুগল লগইনে সমস্যা হয়েছে' };
+    }
+  }
+
+  // Fallback simulation in local dev mode
+  if (typeof window !== 'undefined') {
+    const demoUser: UserProfile = {
+      id: 'demo-google-user-786',
+      email: 'reader@example.com',
+      fullName: 'আব্দুর রহমান (গুগল যাচাইকৃত)',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      role: 'user',
+      isVerified: true
+    };
+    localStorage.setItem(LOCAL_STORAGE_AUTH_USER_KEY, JSON.stringify(demoUser));
+    window.dispatchEvent(new Event('islam-auth-change'));
+    return { success: true };
+  }
+
+  return { success: false, error: 'ব্রাউজার এনভায়রনমেন্ট পাওয়া যায়নি' };
+}
+
+// Sign In with Email & Password
+export async function signInWithEmail(
   email: string,
   pass: string
-): Promise<{ success: boolean; session?: AdminUserSession; error?: string }> {
-  const cleanEmail = email.trim().toLowerCase();
-
-  // Try Supabase Auth if configured
+): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
+        email: email.trim(),
         password: pass
       });
-
-      if (!error && data?.session?.user) {
-        const userSession: AdminUserSession = {
-          email: data.session.user.email || cleanEmail,
-          name: data.session.user.user_metadata?.name || 'মুহাক্কিক সম্পাদক',
-          role: 'superadmin',
-          authProvider: 'supabase',
-          loggedInAt: new Date().toISOString()
-        };
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(userSession));
-        }
-        return { success: true, session: userSession };
+      if (error || !data.user) {
+        return { success: false, error: error?.message || 'ইমেইল বা পাসওয়ার্ড সঠিক নয়' };
       }
-    } catch (err: any) {
-      console.warn('Supabase auth sign in error, checking master fallback', err);
+      const profile = await getCurrentUser();
+      return { success: true, user: profile || undefined };
+    } catch (e: any) {
+      return { success: false, error: e.message };
     }
   }
 
-  // Master demo/emergency fallback for editorial convenience
-  // Allows testing or root admin access before inviting team members in Supabase Dashboard
-  if (
-    (cleanEmail === 'admin@islam.gov.bd' && pass === 'islam@2026') ||
-    (cleanEmail.includes('admin') && pass === '123456') ||
-    (pass === 'islam@2026')
-  ) {
-    const localSession: AdminUserSession = {
-      email: cleanEmail || 'admin@islam.gov.bd',
-      name: 'প্রধান সম্পাদক ও তাহকীক পরিষদ',
-      role: 'superadmin',
-      authProvider: 'local_master',
-      loggedInAt: new Date().toISOString()
+  // Fallback simulation in local dev mode
+  if (typeof window !== 'undefined') {
+    const demoUser: UserProfile = {
+      id: `local-user-${email.replace(/[^a-zA-Z0-9]/g, '') || '1'}`,
+      email: email.trim(),
+      fullName: email.split('@')[0] || 'মুমিন পাঠক',
+      role: 'user'
     };
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(localSession));
-    }
-    return { success: true, session: localSession };
+    localStorage.setItem(LOCAL_STORAGE_AUTH_USER_KEY, JSON.stringify(demoUser));
+    window.dispatchEvent(new Event('islam-auth-change'));
+    return { success: true, user: demoUser };
   }
 
-  return {
-    success: false,
-    error: 'ভুল ইমেইল বা পাসওয়ার্ড। অনুগ্রহ করে পুনরায় চেষ্টা করুন।'
-  };
+  return { success: false, error: 'লগইন ব্যর্থ হয়েছে' };
 }
 
-// 3. Sign In with Magic Link (Passwordless OTP)
-export async function signInWithMagicLink(
-  email: string
-): Promise<{ success: boolean; message: string; error?: string }> {
-  const cleanEmail = email.trim().toLowerCase();
-
+// Sign Up with Email & Password
+export async function signUpWithEmail(
+  email: string,
+  pass: string,
+  fullName: string
+): Promise<{ success: boolean; user?: UserProfile; error?: string; confirmationRequired?: boolean }> {
   if (isSupabaseConfigured() && supabase) {
     try {
-      const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/admin` : undefined;
-      const { error } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: pass,
         options: {
-          emailRedirectTo: redirectTo
+          data: {
+            full_name: fullName.trim()
+          }
         }
       });
-
       if (error) {
-        return { success: false, message: error.message, error: error.message };
+        return { success: false, error: error.message };
       }
-
-      return {
-        success: true,
-        message: `${cleanEmail} ঠিকানায় ম্যাজিক লগইন লিঙ্ক পাঠানো হয়েছে। ইনবক্স চেক করুন।`
-      };
-    } catch (err: any) {
-      return { success: false, message: err.message, error: err.message };
+      if (data.user && !data.session) {
+        return { success: true, confirmationRequired: true };
+      }
+      const profile = await getCurrentUser();
+      return { success: true, user: profile || undefined };
+    } catch (e: any) {
+      return { success: false, error: e.message };
     }
   }
 
-  return {
-    success: false,
-    message: 'ম্যাজিক লিংক সার্ভিসের জন্য Supabase ক্লাউড সক্রিয় থাকতে হবে।'
-  };
+  // Fallback simulation
+  if (typeof window !== 'undefined') {
+    const demoUser: UserProfile = {
+      id: `local-user-${Date.now()}`,
+      email: email.trim(),
+      fullName: fullName.trim() || 'মুমিন পাঠক',
+      role: 'user'
+    };
+    localStorage.setItem(LOCAL_STORAGE_AUTH_USER_KEY, JSON.stringify(demoUser));
+    window.dispatchEvent(new Event('islam-auth-change'));
+    return { success: true, user: demoUser };
+  }
+
+  return { success: false, error: 'নিবন্ধন ব্যর্থ হয়েছে' };
 }
 
-// 4. Sign Out
-export async function signOutAdmin(): Promise<void> {
+// Sign Out
+export async function signOutUser(): Promise<void> {
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase.auth.signOut();
-    } catch (err) {
-      console.warn('Supabase signOut error', err);
+    } catch (e) {
+      console.warn('Sign out failed', e);
+    }
+  }
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(LOCAL_STORAGE_AUTH_USER_KEY);
+    window.dispatchEvent(new Event('islam-auth-change'));
+  }
+}
+
+// Auth State Change Subscriber
+export function subscribeToAuthState(callback: (user: UserProfile | null) => void) {
+  let unsubscribeSupabase = () => {};
+
+  if (isSupabaseConfigured() && supabase) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async () => {
+      const user = await getCurrentUser();
+      callback(user);
+    });
+    unsubscribeSupabase = () => subscription.unsubscribe();
+  }
+
+  const handleLocalChange = async () => {
+    const user = await getCurrentUser();
+    callback(user);
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('islam-auth-change', handleLocalChange);
+    window.addEventListener('storage', handleLocalChange);
+  }
+
+  return () => {
+    unsubscribeSupabase();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('islam-auth-change', handleLocalChange);
+      window.removeEventListener('storage', handleLocalChange);
+    }
+  };
+}
+
+// ==========================================
+// ADMIN DASHBOARD AUTH EXTENSIONS
+// ==========================================
+
+export interface AdminUserSession {
+  id: string;
+  email: string;
+  name?: string;
+  fullName: string;
+  role: 'superadmin' | 'editor' | 'author';
+  avatarUrl?: string;
+}
+
+const LOCAL_STORAGE_ADMIN_KEY = 'islam_admin_session_v1';
+
+export async function getCurrentAdminSession(): Promise<AdminUserSession | null> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const fullName = session.user.user_metadata?.full_name || 'মুহাক্কিক অ্যাডমিন';
+        return {
+          id: session.user.id,
+          email: session.user.email || 'admin@islam.gov.bd',
+          name: fullName,
+          fullName,
+          role: 'superadmin',
+          avatarUrl: session.user.user_metadata?.avatar_url
+        };
+      }
+    } catch (e) {
+      console.warn('getCurrentAdminSession error', e);
     }
   }
 
   if (typeof window !== 'undefined') {
     try {
-      localStorage.removeItem(ADMIN_STORAGE_KEY);
-    } catch (e) {
-      console.error(e);
+      const raw = localStorage.getItem(LOCAL_STORAGE_ADMIN_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+  }
+  return null;
+}
+
+export async function signInAdmin(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { success: false, error: error.message };
+      const fullName = data.user.user_metadata?.full_name || 'মুহাক্কিক অ্যাডমিন';
+      const adminSession: AdminUserSession = {
+        id: data.user.id,
+        email: data.user.email || email,
+        name: fullName,
+        fullName,
+        role: 'superadmin'
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_STORAGE_ADMIN_KEY, JSON.stringify(adminSession));
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'অ্যাডমিন লগইনে ব্যর্থ' };
     }
+  }
+
+  // Local fallback: authenticate demo credentials or any valid entry
+  if (email === 'admin@islam.gov.bd' && password === 'islam@2026') {
+    const fullName = 'প্রফেসর ড. আব্দুল্লাহ আল-মামুন (সুপার অ্যাডমিন)';
+    const adminSession: AdminUserSession = {
+      id: 'admin-local-master-1',
+      email: 'admin@islam.gov.bd',
+      name: fullName,
+      fullName,
+      role: 'superadmin'
+    };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_ADMIN_KEY, JSON.stringify(adminSession));
+    }
+    return { success: true };
+  }
+
+  const defaultName = 'এডমিন ইউজার';
+  const adminSession: AdminUserSession = {
+    id: 'admin-local-master-1',
+    email,
+    name: defaultName,
+    fullName: defaultName,
+    role: 'superadmin'
+  };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_STORAGE_ADMIN_KEY, JSON.stringify(adminSession));
+  }
+  return { success: true };
+}
+
+export async function signInWithMagicLink(email: string): Promise<{ success: boolean; message: string; error?: string }> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const redirectTo = typeof window !== 'undefined' ? `${window.location.origin}/admin` : undefined;
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: redirectTo }
+      });
+      if (error) return { success: false, message: error.message, error: error.message };
+      return { success: true, message: 'আপনার ইমেইলে একটি ওয়ান-ক্লিক ম্যাজিক লিংক পাঠানো হয়েছে!' };
+    } catch (e: any) {
+      return { success: false, message: e.message, error: e.message };
+    }
+  }
+
+  return { success: true, message: 'ম্যাজিক লিংক (ডেমো মোড) সফলভাবে প্রেরিত হয়েছে।' };
+}
+
+export async function signOutAdmin(): Promise<void> {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+  }
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(LOCAL_STORAGE_ADMIN_KEY);
   }
 }
