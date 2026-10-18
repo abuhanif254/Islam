@@ -1,5 +1,6 @@
 -- ===========================================================================
--- ইসলাম (Islam Portal) — Supabase PostgreSQL Database Schema
+-- ইসলাম (Islam Portal) — 100% Idempotent Supabase PostgreSQL Schema
+-- এটি যতবার খুশি নির্বিঘ্নে রান করা যাবে (DROP IF EXISTS সুরক্ষিত)
 -- ===========================================================================
 
 -- 1. Enable UUID Extension
@@ -79,26 +80,40 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. ROW LEVEL SECURITY (RLS) POLICIES
+-- 7. ROW LEVEL SECURITY (RLS) POLICIES FOR CORE TABLES
 ALTER TABLE public.sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
--- Public Read Access Policies (সকল ভিজিটরদের জন্য উন্মুক্ত)
+-- Public Read Access Policies (সবার জন্য উন্মুক্ত)
+DROP POLICY IF EXISTS "Allow public read on sections" ON public.sections;
 CREATE POLICY "Allow public read on sections" ON public.sections FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read on categories" ON public.categories;
 CREATE POLICY "Allow public read on categories" ON public.categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read on published articles" ON public.articles;
 CREATE POLICY "Allow public read on published articles" ON public.articles FOR SELECT USING (status = 'published' OR true);
+
+DROP POLICY IF EXISTS "Allow public read on bookmarks" ON public.bookmarks;
 CREATE POLICY "Allow public read on bookmarks" ON public.bookmarks FOR SELECT USING (true);
 
 -- Admin Write Access Policies
+DROP POLICY IF EXISTS "Allow admin full access on sections" ON public.sections;
 CREATE POLICY "Allow admin full access on sections" ON public.sections FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow admin full access on categories" ON public.categories;
 CREATE POLICY "Allow admin full access on categories" ON public.categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow admin full access on articles" ON public.articles;
 CREATE POLICY "Allow admin full access on articles" ON public.articles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow admin full access on bookmarks" ON public.bookmarks;
 CREATE POLICY "Allow admin full access on bookmarks" ON public.bookmarks FOR ALL USING (true) WITH CHECK (true);
 
--- 8. INDEXES FOR LIGHTNING PERFORMANCE
+-- 8. INDEXES FOR PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_categories_section_id ON public.categories(section_id);
 CREATE INDEX IF NOT EXISTS idx_articles_section_category ON public.articles(section_id, category_id);
 CREATE INDEX IF NOT EXISTS idx_articles_status ON public.articles(status);
@@ -113,8 +128,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS tr_sections_updated_at ON public.sections;
 CREATE TRIGGER tr_sections_updated_at BEFORE UPDATE ON public.sections FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS tr_categories_updated_at ON public.categories;
 CREATE TRIGGER tr_categories_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS tr_articles_updated_at ON public.articles;
 CREATE TRIGGER tr_articles_updated_at BEFORE UPDATE ON public.articles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- 10. USER PROFILES TABLE (Supabase auth.users এর সাথে সংযুক্ত)
@@ -144,7 +164,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
@@ -184,29 +205,49 @@ ALTER TABLE public.article_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.article_comments ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Article Reactions Policies
+DROP POLICY IF EXISTS "Anyone can view reactions count" ON public.article_reactions;
 CREATE POLICY "Anyone can view reactions count" ON public.article_reactions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can create reaction" ON public.article_reactions;
 CREATE POLICY "Authenticated users can create reaction" ON public.article_reactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own reaction" ON public.article_reactions;
 CREATE POLICY "Users can update their own reaction" ON public.article_reactions FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own reaction" ON public.article_reactions;
 CREATE POLICY "Users can delete their own reaction" ON public.article_reactions FOR DELETE USING (auth.uid() = user_id);
 
 -- Article Comments Policies
+DROP POLICY IF EXISTS "Anyone can view approved comments" ON public.article_comments;
 CREATE POLICY "Anyone can view approved comments" ON public.article_comments FOR SELECT USING (status = 'approved');
+
+DROP POLICY IF EXISTS "Authenticated users can insert comments" ON public.article_comments;
 CREATE POLICY "Authenticated users can insert comments" ON public.article_comments FOR INSERT WITH CHECK (
   auth.role() = 'authenticated' AND auth.uid() = user_id AND status = 'approved'
 );
+
+DROP POLICY IF EXISTS "Users can edit their own comment" ON public.article_comments;
 CREATE POLICY "Users can edit their own comment" ON public.article_comments FOR UPDATE USING (
   auth.uid() = user_id
 ) WITH CHECK (
   auth.uid() = user_id
 );
+
+DROP POLICY IF EXISTS "Users or Admins can delete comment" ON public.article_comments;
 CREATE POLICY "Users or Admins can delete comment" ON public.article_comments FOR DELETE USING (
   auth.uid() = user_id OR 
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'moderator'))
 );
 
+DROP TRIGGER IF EXISTS tr_profiles_updated_at ON public.profiles;
 CREATE TRIGGER tr_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS tr_comments_updated_at ON public.article_comments;
 CREATE TRIGGER tr_comments_updated_at BEFORE UPDATE ON public.article_comments FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
