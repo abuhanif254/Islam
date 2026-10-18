@@ -22,6 +22,11 @@ export interface ArticleFeaturedImage {
   sourceUrl?: string;
 }
 
+export interface ArticleFAQ {
+  question: string;
+  answer: string;
+}
+
 export interface Article {
   id: string;
   slug: string;
@@ -41,6 +46,8 @@ export interface Article {
   contentSections: ArticleSection[];
   references: string[];
   featuredImage?: ArticleFeaturedImage;
+  faqs?: ArticleFAQ[];
+  relatedArticleSlugs?: string[];
 }
 
 export interface CategoryItem {

@@ -113,9 +113,11 @@ export default async function ArticleRoutePage({
 
   const articleJsonLd = getArticleJsonLd(article, section, category);
 
-  // Generate FAQPage Schema from Key Takeaways for Google Rich Snippets & AI answers
+  // Generate FAQPage Schema from article.faqs or Key Takeaways for Google Rich Snippets & AI answers
   const faqItems =
-    article.keyTakeaways && article.keyTakeaways.length > 0
+    article.faqs && article.faqs.length > 0
+      ? article.faqs
+      : article.keyTakeaways && article.keyTakeaways.length > 0
       ? article.keyTakeaways.map((takeaway, idx) => ({
           question:
             idx === 0

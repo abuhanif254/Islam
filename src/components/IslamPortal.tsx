@@ -23,7 +23,8 @@ import {
   UserCheck,
   BookMarked,
   Database,
-  Hash
+  Hash,
+  HelpCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeMode, ViewMode, Article, CategoryItem, SectionPage, CitationBox } from '@/types';
@@ -120,6 +121,27 @@ export default function IslamPortal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Reading Progress percentage in Reader Mode
+  const [readingProgress, setReadingProgress] = useState<number>(0);
+
+  useEffect(() => {
+    if (viewMode !== 'reader') {
+      setReadingProgress(0);
+      return;
+    }
+    const updateProgress = () => {
+      const scrollY = window.scrollY;
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        const pct = Math.min(100, Math.max(0, (scrollY / totalHeight) * 100));
+        setReadingProgress(pct);
+      }
+    };
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+    return () => window.removeEventListener('scroll', updateProgress);
+  }, [viewMode, selectedArticleId]);
 
   // Reading Preferences (Solid Color Themes + Font Scale)
   const [themeMode, setThemeMode] = useState<ThemeMode>('paper');
@@ -298,6 +320,25 @@ export default function IslamPortal({
     return list.slice(0, 3);
   }, [categoryArticles, articles, currentArticle, activeSection.id]);
 
+  const articleFaqs = useMemo(() => {
+    if (!currentArticle) return [];
+    if (currentArticle.faqs && currentArticle.faqs.length > 0) {
+      return currentArticle.faqs;
+    }
+    if (currentArticle.keyTakeaways && currentArticle.keyTakeaways.length > 0) {
+      return currentArticle.keyTakeaways.map((takeaway, idx) => ({
+        question:
+          idx === 0
+            ? `${currentArticle.title}-এর মূল শিক্ষা ও তাৎপর্য কী?`
+            : idx === 1
+            ? `${activeCategory.name} বিষয়ে কুরআন ও সুন্নাহর মৌলিক বিধান কী?`
+            : `${currentArticle.title} থেকে মুমিনের জীবনে কী আমল ও শিক্ষা গ্রহণ করা উচিত?`,
+        answer: takeaway
+      }));
+    }
+    return [];
+  }, [currentArticle, activeCategory.name]);
+
   const handleSelectSection = (sec: SectionPage) => {
     setActiveSectionId(sec.id);
     setActiveGroupFilter(sec.filterGroups[0]);
@@ -448,6 +489,23 @@ export default function IslamPortal({
         <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 bg-[#0B4F3B] text-[#FFFFFF] px-4 py-3 border-2 border-[#141615] shadow-lg">
           <Check className="w-4 h-4 text-[#F5EBE1] shrink-0" />
           <span className="text-sm font-medium">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* 0. READING PROGRESS BAR IN READER MODE */}
+      {viewMode === 'reader' && (
+        <div
+          role="progressbar"
+          aria-valuenow={Math.round(readingProgress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="আর্টিকেল পাঠের অগ্রগতি"
+          className="fixed top-0 left-0 right-0 h-1 z-50 bg-[#0B4F3B]/10 dark:bg-emerald-950/40 pointer-events-none"
+        >
+          <div
+            className="h-full bg-gradient-to-r from-[#0B4F3B] via-[#B85D19] to-[#0B4F3B] transition-all duration-150 ease-out shadow-sm"
+            style={{ width: `${readingProgress}%` }}
+          />
         </div>
       )}
 
@@ -1672,6 +1730,45 @@ export default function IslamPortal({
                   </ol>
                 </div>
 
+                {/* PROVEN FAQ SECTION FOR GOOGLE EXPANDABLE RICH SNIPPETS & READER TRUST */}
+                {articleFaqs.length > 0 && (
+                  <section aria-label="সাধারণ জিজ্ঞাসা ও প্রামাণ্য উত্তর" className={`p-5 sm:p-6 ${themeClasses.bgSurface} border-2 border-emerald-900/30 dark:border-emerald-500/30 space-y-4`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 border-[#DCD7CD] dark:border-[#26332F]">
+                      <h3 className="font-editorial text-lg sm:text-xl font-bold flex items-center gap-2 text-[#0B4F3B] dark:text-[#4CC39A]">
+                        <HelpCircle className="w-5 h-5 text-[#B85D19]" />
+                        <span>প্রামাণ্য প্রশ্নোত্তর ও সাধারণ জিজ্ঞাসা (FAQ)</span>
+                      </h3>
+                      <span className="text-[11px] font-bold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-[#0B4F3B] dark:text-emerald-300 border border-emerald-600/30">
+                        তাহকীক ও প্রামাণ্য উত্তর
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {articleFaqs.map((faq, fIdx) => (
+                        <details
+                          key={fIdx}
+                          className="group border border-[#DCD7CD] dark:border-[#26332F] bg-[#FAF8F5] dark:bg-[#1A2421] p-3.5 sm:p-4 transition-all duration-150"
+                        >
+                          <summary className="font-editorial text-sm sm:text-base font-bold cursor-pointer list-none flex items-center justify-between gap-3 text-[#141615] dark:text-[#FAF8F5] group-hover:text-[#0B4F3B] dark:group-hover:text-[#4CC39A]">
+                            <span className="flex items-center gap-2.5">
+                              <span className="w-5 h-5 rounded-full bg-[#0B4F3B] text-white text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                                {fIdx + 1}
+                              </span>
+                              <span>{faq.question}</span>
+                            </span>
+                            <span className="text-[#B85D19] group-open:rotate-180 transition-transform duration-200 text-xs shrink-0">
+                              ▼
+                            </span>
+                          </summary>
+                          <div className="mt-3 pt-3 border-t border-[#DCD7CD]/60 dark:border-[#26332F]/60 text-xs sm:text-sm text-[#4A4E4B] dark:text-[#C5CCC8] leading-relaxed pl-7">
+                            {faq.answer}
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
                 {/* RELATED ARTICLES MESH (Googlebot Crawlability & Reader Engagement) */}
                 {relatedArticles.length > 0 && (
                   <div className={`p-5 ${themeClasses.bgSurface} border ${themeClasses.borderStrong} space-y-4`}>
@@ -1710,7 +1807,17 @@ export default function IslamPortal({
                             }}
                             className={`group flex flex-col justify-between p-4 ${themeClasses.bgMuted} border ${themeClasses.borderSubtle} hover:border-[#0B4F3B] transition-all duration-150 shadow-sm hover:shadow-md`}
                           >
-                            <div className="space-y-2">
+                            <div className="space-y-2.5">
+                              {relArt.featuredImage?.url && (
+                                <div className="w-full h-32 overflow-hidden border border-[#DCD7CD] dark:border-[#26332F] bg-black/5">
+                                  <img
+                                    src={relArt.featuredImage.url}
+                                    alt={relArt.featuredImage.alt || relArt.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    loading="lazy"
+                                  />
+                                </div>
+                              )}
                               <div className="flex items-center justify-between text-[11px] font-bold">
                                 <span className="px-2 py-0.5 bg-[#0B4F3B] text-white">
                                   {targetCat.name}
