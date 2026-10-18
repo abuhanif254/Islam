@@ -19,7 +19,13 @@ import {
 } from 'lucide-react';
 import { IslamicGeometricEmblem } from '@/components/IslamicGeometricEmblem';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { getCurrentAdminSession, signOutAdmin, AdminUserSession } from '@/lib/supabase-auth';
+import {
+  getCurrentAdminSession,
+  signOutAdmin,
+  AdminUserSession,
+  updateAdminActivity,
+  isSessionTimedOut
+} from '@/lib/supabase-auth';
 
 export default function AdminLayout({
   children,
@@ -53,6 +59,37 @@ export default function AdminLayout({
       }
     });
   }, [pathname, isLoginPage, router]);
+
+  // 15-Minute Inactivity Auto-Lock Watchdog
+  useEffect(() => {
+    if (isLoginPage || !session) return;
+
+    const handleUserInteraction = () => {
+      updateAdminActivity();
+    };
+
+    window.addEventListener('mousemove', handleUserInteraction, { passive: true });
+    window.addEventListener('keydown', handleUserInteraction, { passive: true });
+    window.addEventListener('click', handleUserInteraction, { passive: true });
+    window.addEventListener('scroll', handleUserInteraction, { passive: true });
+
+    const timeoutInterval = setInterval(() => {
+      if (isSessionTimedOut()) {
+        signOutAdmin().then(() => {
+          setSession(null);
+          router.push('/admin/login');
+        });
+      }
+    }, 15000);
+
+    return () => {
+      window.removeEventListener('mousemove', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('scroll', handleUserInteraction);
+      clearInterval(timeoutInterval);
+    };
+  }, [isLoginPage, session, router]);
 
   const handleLogout = async () => {
     await signOutAdmin();
