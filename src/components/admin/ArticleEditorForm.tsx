@@ -32,7 +32,19 @@ import {
   X,
   Award,
   ChevronRight,
-  Loader2
+  Loader2,
+  Layers,
+  History,
+  Maximize2,
+  Minimize2,
+  Quote,
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Minus,
+  HelpCircle,
+  Check
 } from 'lucide-react';
 import { SECTIONS_DATA } from '@/data/sections';
 import { DbArticle, DbCategory } from '@/lib/supabase';
@@ -44,17 +56,35 @@ import {
 } from '@/lib/supabase-service';
 import { toBengaliDigits } from '@/lib/prayer-times';
 
+import ArabicPalette from './editor/ArabicPalette';
+import IslamicBlockModal, { IslamicBlockType } from './editor/IslamicBlockModal';
+import FrameworkGeneratorModal, { ArticleFramework } from './editor/FrameworkGeneratorModal';
+import LiveSeoScoreCard from './editor/LiveSeoScoreCard';
+import RevisionHistoryModal from './editor/RevisionHistoryModal';
+
 interface ArticleEditorFormProps {
   initialArticle?: DbArticle | null;
   isEdit?: boolean;
 }
 
+export type EditorTab = 'basic' | 'hero' | 'body' | 'refs' | 'seo';
+
 export default function ArticleEditorForm({ initialArticle, isEdit = false }: ArticleEditorFormProps) {
   const router = useRouter();
+
+  // Active Tab: 'basic' | 'hero' | 'body' | 'refs' | 'seo'
+  const [activeTab, setActiveTab] = useState<EditorTab>('basic');
 
   // Mode: 'editor' | 'split' | 'preview'
   const [viewMode, setViewMode] = useState<'editor' | 'split' | 'preview'>('editor');
   const [previewTheme, setPreviewTheme] = useState<'paper' | 'sepia' | 'dark'>('paper');
+  const [isZenMode, setIsZenMode] = useState(false);
+
+  // Modals state
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [targetSectionIndex, setTargetSectionIndex] = useState<number>(0);
+  const [frameworkModalOpen, setFrameworkModalOpen] = useState(false);
+  const [revisionModalOpen, setRevisionModalOpen] = useState(false);
 
   // Form State
   const [id, setId] = useState(initialArticle?.id || '');
@@ -65,7 +95,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
   const [categoryId, setCategoryId] = useState(initialArticle?.category_id || 'tawheed-fundamentals');
   const [author, setAuthor] = useState(initialArticle?.author || 'মাওলানা আব্দুল হক');
   const [reviewer, setReviewer] = useState(initialArticle?.reviewer || 'মুফতী মাহমুদ হাসান (তাহকীক ও সম্পাদনা)');
-  const [publishedAt, setPublishedAt] = useState(initialArticle?.published_at || '১৭ অক্টোবর ২০২৬');
+  const [publishedAt, setPublishedAt] = useState(initialArticle?.published_at || '১৮ অক্টোবর ২০২৬');
   const [readTime, setReadTime] = useState(initialArticle?.read_time || '৮ মিনিট পাঠ');
   const [isLead, setIsLead] = useState(Boolean(initialArticle?.is_lead));
   const [status, setStatus] = useState<'published' | 'draft' | 'review'>(initialArticle?.status || 'published');
@@ -119,18 +149,6 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Islamic Block Builder Modal State
-  const [blockModalOpen, setBlockModalOpen] = useState(false);
-  const [blockType, setBlockType] = useState<'quran' | 'hadith' | 'fiqh'>('quran');
-  const [targetSectionIndex, setTargetSectionIndex] = useState<number>(0);
-  const [blockArabic, setBlockArabic] = useState('');
-  const [blockTranslit, setBlockTranslit] = useState('');
-  const [blockBengali, setBlockBengali] = useState('');
-  const [blockRef, setBlockRef] = useState('');
-  const [blockNarrator, setBlockNarrator] = useState('');
-  const [blockGrade, setBlockGrade] = useState('সহীহ');
-  const [blockRuling, setBlockRuling] = useState('ওয়াজিব');
-
   // Load Categories on mount and when section changes
   useEffect(() => {
     let mounted = true;
@@ -140,8 +158,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
         if (mounted) {
           setCategoriesList(cats);
           setLoadingCategories(false);
-          // If current categoryId is not in cats, pick the first one
-          if (cats.length > 0 && !cats.some(c => c.id === categoryId)) {
+          if (cats.length > 0 && !cats.some((c) => c.id === categoryId)) {
             setCategoryId(cats[0].id);
           }
         }
@@ -163,7 +180,6 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
       if (rawDraft) {
         const parsed = JSON.parse(rawDraft);
         if (parsed && parsed.savedAt && parsed.title) {
-          // If title differs from initialArticle or has substantial unsaved work
           if (!initialArticle || parsed.title !== initialArticle.title || parsed.bodyLength > 100) {
             setHasRecoverableDraft(true);
             setDraftSavedTime(parsed.savedAt);
@@ -175,13 +191,17 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     }
   }, [draftKey, initialArticle]);
 
-  // Auto-save draft every 15s when form state changes
+  // Auto-save draft every 1.5s when form state changes
   useEffect(() => {
     if (typeof window === 'undefined' || isDraftRestored) return;
     const timer = setTimeout(() => {
       try {
         const draftData = {
-          savedAt: new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          savedAt: new Date().toLocaleTimeString('bn-BD', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }),
           title,
           subtitle,
           sectionId,
@@ -269,7 +289,6 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     }
   };
 
-  // Discard Draft
   const handleDiscardDraft = () => {
     try {
       localStorage.removeItem(draftKey);
@@ -279,7 +298,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
 
   // Live Stats (Words, Characters, Calculated Reading Time)
   const fullArticleText = useMemo(() => {
-    const sectionsText = contentSections.map(s => `${s.heading} ${s.body}`).join(' ');
+    const sectionsText = contentSections.map((s) => `${s.heading} ${s.body}`).join(' ');
     const takeawaysText = keyTakeaways.join(' ');
     return `${title} ${subtitle} ${summary} ${citationArabic} ${citationBengali} ${takeawaysText} ${sectionsText}`;
   }, [title, subtitle, summary, citationArabic, citationBengali, keyTakeaways, contentSections]);
@@ -288,10 +307,19 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     return calculateBengaliStats(fullArticleText);
   }, [fullArticleText]);
 
-  // Handle Section Change
-  const handleSectionChange = (newSecId: string) => {
-    setSectionId(newSecId);
-  };
+  // Section and Category lookups
+  const currentSection = useMemo(() => {
+    return SECTIONS_DATA.find((s) => s.id === sectionId);
+  }, [sectionId]);
+
+  const currentCategory = useMemo(() => {
+    return categoriesList.find((c) => c.id === categoryId);
+  }, [categoriesList, categoryId]);
+
+  const liveUrl =
+    currentSection && currentCategory && (slug || initialArticle?.slug)
+      ? `/${currentSection.slug}/${currentCategory.slug}/${slug || initialArticle?.slug}/`
+      : null;
 
   // Auto-generate slug and ID helper
   const handleGenerateSlug = () => {
@@ -354,6 +382,12 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     setContentSections(updated);
   };
 
+  // Inline formatting helper for active section body
+  const insertFormatting = (index: number, prefix: string, suffix: string = '') => {
+    const target = contentSections[index]?.body || '';
+    handleSectionChangeContent(index, 'body', target + `${prefix}${suffix}`);
+  };
+
   // References helpers
   const handleRefChange = (index: number, val: string) => {
     const updated = [...references];
@@ -367,34 +401,61 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
   };
 
   // Open Block Builder Modal
-  const openBlockBuilder = (sectionIdx: number, type: 'quran' | 'hadith' | 'fiqh') => {
+  const openBlockBuilder = (sectionIdx: number) => {
     setTargetSectionIndex(sectionIdx);
-    setBlockType(type);
-    setBlockArabic('');
-    setBlockTranslit('');
-    setBlockBengali('');
-    setBlockRef('');
-    setBlockNarrator('');
-    setBlockGrade('সহীহ');
-    setBlockRuling('ওয়াজিব');
     setBlockModalOpen(true);
   };
 
-  // Insert Islamic Block into Section Body
-  const handleInsertBlock = () => {
-    let blockMarkup = '';
-
-    if (blockType === 'quran') {
-      blockMarkup = `\n\n[কুরআন: ${blockRef.trim() || 'পবিত্র কুরআন'}]\n${blockArabic.trim() ? `আরবী: ${blockArabic.trim()}\n` : ''}${blockTranslit.trim() ? `উচ্চারণ: ${blockTranslit.trim()}\n` : ''}অনুবাদ: "${blockBengali.trim()}"\n[/কুরআন]\n\n`;
-    } else if (blockType === 'hadith') {
-      blockMarkup = `\n\n[হাদিস: ${blockRef.trim() || 'হাদিস শরীফ'} | তাহকীক: ${blockGrade}]\n${blockArabic.trim() ? `মতন: ${blockArabic.trim()}\n` : ''}${blockNarrator.trim() ? `রাবী: ${blockNarrator.trim()}\n` : ''}অনুবাদ: "${blockBengali.trim()}"\n[/হাদিস]\n\n`;
-    } else if (blockType === 'fiqh') {
-      blockMarkup = `\n\n[মাসআলা: ${blockRef.trim() || 'শরীয়াহ বিধান'} | হুকুম: ${blockRuling}]\n${blockBengali.trim()}\n[/মাসআলা]\n\n`;
+  // Apply Framework Outlines
+  const handleApplyFramework = (fw: ArticleFramework) => {
+    if (confirm('এই ফ্রেমওয়ার্কটি প্রয়োগ করলে বর্তমান শিরোনাম, অনুচ্ছেদ ও সারসংক্ষেপ পরিবর্তিত হবে। আপনি কি নিশ্চিত?')) {
+      if (!title.trim() || title === 'শিরোনামহীন নতুন প্রবন্ধ') {
+        setTitle(fw.titleSuggestion);
+      }
+      setSubtitle(fw.subtitleSuggestion);
+      setSummary(fw.summarySuggestion);
+      setContentSections(fw.contentSections);
+      setKeyTakeaways(fw.keyTakeaways);
+      setReferences(fw.references);
+      handleGenerateSlug();
+      setActiveTab('body');
+      setSuccessMsg('ফ্রেমওয়ার্ক সফলভাবে ফর্মে প্রয়োগ করা হয়েছে!');
     }
+  };
 
-    const currentBody = contentSections[targetSectionIndex]?.body || '';
-    handleSectionChangeContent(targetSectionIndex, 'body', currentBody + blockMarkup);
-    setBlockModalOpen(false);
+  // Restore snapshot from Revision Modal
+  const handleRestoreSnapshot = (data: any) => {
+    if (data.title) setTitle(data.title);
+    if (data.subtitle) setSubtitle(data.subtitle);
+    if (data.section_id || data.sectionId) setSectionId(data.section_id || data.sectionId);
+    if (data.category_id || data.categoryId) setCategoryId(data.category_id || data.categoryId);
+    if (data.author) setAuthor(data.author);
+    if (data.reviewer) setReviewer(data.reviewer);
+    if (data.published_at || data.publishedAt) setPublishedAt(data.published_at || data.publishedAt);
+    if (data.read_time || data.readTime) setReadTime(data.read_time || data.readTime);
+    if (data.status) setStatus(data.status);
+    if (data.summary) setSummary(data.summary);
+    if (data.citation) {
+      setCitationArabic(data.citation.arabic || '');
+      setCitationTranslit(data.citation.transliteration || '');
+      setCitationBengali(data.citation.bengali || '');
+      setCitationRef(data.citation.reference || '');
+    }
+    if (Array.isArray(data.key_takeaways || data.keyTakeaways)) {
+      setKeyTakeaways(data.key_takeaways || data.keyTakeaways);
+    }
+    if (Array.isArray(data.content_sections || data.contentSections)) {
+      setContentSections(data.content_sections || data.contentSections);
+    }
+    if (Array.isArray(data.references)) {
+      setReferences(data.references);
+    }
+    if (Array.isArray(data.tags)) {
+      setTagsInput(data.tags.join(', '));
+    } else if (typeof data.tagsInput === 'string') {
+      setTagsInput(data.tagsInput);
+    }
+    setSuccessMsg('নির্বাচিত সংস্করণ সফলভাবে রিস্টোর হয়েছে!');
   };
 
   // Form Submission
@@ -405,10 +466,12 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
 
     if (!title.trim()) {
       setErrorMsg('প্রবন্ধের পূর্ণাঙ্গ শিরোনাম প্রদান করা আবশ্যক।');
+      setActiveTab('basic');
       return;
     }
     if (!summary.trim()) {
       setErrorMsg('মূল সারসংক্ষেপ ও ভূমিকা প্রদান করা আবশ্যক।');
+      setActiveTab('hero');
       return;
     }
 
@@ -417,12 +480,14 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
 
     const parsedTags = tagsInput
       .split(',')
-      .map(t => t.trim())
+      .map((t) => t.trim())
       .filter(Boolean);
 
-    const cleanTakeaways = keyTakeaways.filter(t => t.trim().length > 0);
-    const cleanSections = contentSections.filter(s => s.heading.trim().length > 0 || s.body.trim().length > 0);
-    const cleanReferences = references.filter(r => r.trim().length > 0);
+    const cleanTakeaways = keyTakeaways.filter((t) => t.trim().length > 0);
+    const cleanSections = contentSections.filter(
+      (s) => s.heading.trim().length > 0 || s.body.trim().length > 0
+    );
+    const cleanReferences = references.filter((r) => r.trim().length > 0);
 
     const articleData: DbArticle = {
       id: finalId,
@@ -455,7 +520,6 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     try {
       const result = await saveAdminArticle(articleData);
       if (result.success) {
-        // Clear local draft on success
         try {
           localStorage.removeItem(draftKey);
         } catch {}
@@ -474,50 +538,16 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
     }
   };
 
-  // Delete article
-  const handleDelete = async () => {
-    if (!initialArticle?.id) return;
-    if (!confirm('আপনি কি নিশ্চিত যে এই প্রবন্ধটি স্থায়ীভাবে মুছে ফেলতে চান?')) return;
-    setDeleting(true);
-    try {
-      const res = await deleteAdminArticle(initialArticle.id);
-      if (res.success) {
-        try {
-          localStorage.removeItem(draftKey);
-        } catch {}
-        router.push('/admin/articles');
-      } else {
-        setErrorMsg('মুছতে সমস্যা হয়েছে: ' + res.error);
-      }
-    } catch (err: any) {
-      setErrorMsg('ত্রুটি: ' + err.message);
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  // Section and Category lookups
-  const currentSection = useMemo(() => {
-    return SECTIONS_DATA.find(s => s.id === sectionId);
-  }, [sectionId]);
-
-  const currentCategory = useMemo(() => {
-    return categoriesList.find(c => c.id === categoryId);
-  }, [categoriesList, categoryId]);
-
-  const liveUrl = currentSection && currentCategory && (slug || initialArticle?.slug)
-    ? `/${currentSection.slug}/${currentCategory.slug}/${slug || initialArticle?.slug}/`
-    : null;
-
   // Render Formatted Islamic Body helper for Preview Mode
   const renderParsedBody = (bodyText: string) => {
     if (!bodyText) return null;
 
-    // Split on blocks: [কুরআন: ...], [হাদিস: ...], [মাসআলা: ...]
-    const parts = bodyText.split(/(\[(?:কুরআন|হাদিস|মাসআলা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা)\])/g);
+    const parts = bodyText.split(
+      /(\[(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা)\])/g
+    );
 
     return parts.map((part, pIdx) => {
-      // Check for Quran block
+      // 1. Quran Block
       const quranMatch = part.match(/\[কুরআন:\s*([^\]]*)\]([\s\S]*?)\[\/কুরআন\]/);
       if (quranMatch) {
         const ref = quranMatch[1];
@@ -529,7 +559,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
         return (
           <div
             key={pIdx}
-            className="my-5 p-5 bg-[#FAF8F5] dark:bg-[#1A2421] border-2 border-[#0B4F3B] space-y-3"
+            className="my-5 p-5 bg-[#FAF8F5] dark:bg-[#1A2421] border-2 border-[#0B4F3B] space-y-3 shadow-xs"
           >
             <div className="flex items-center justify-between text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] pb-1 border-b border-[#0B4F3B]/20">
               <span className="flex items-center gap-1.5">
@@ -539,7 +569,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
               <span className="font-mono">{ref}</span>
             </div>
             {arabicMatch && (
-              <p dir="rtl" className="font-serif text-2xl leading-loose font-bold text-[#0B4F3B] dark:text-[#4CC39A] text-right">
+              <p dir="rtl" className="font-arabic text-2xl leading-loose font-bold text-[#0B4F3B] dark:text-[#4CC39A] text-right">
                 {arabicMatch[1]}
               </p>
             )}
@@ -557,7 +587,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
         );
       }
 
-      // Check for Hadith block
+      // 2. Hadith Block
       const hadithMatch = part.match(/\[হাদিস:\s*([^\]]*)\]([\s\S]*?)\[\/হাদিস\]/);
       if (hadithMatch) {
         const header = hadithMatch[1];
@@ -569,7 +599,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
         return (
           <div
             key={pIdx}
-            className="my-5 p-5 bg-[#FAF8F5] dark:bg-[#1A2421] border-l-4 border-[#B85D19] space-y-3"
+            className="my-5 p-5 bg-[#FAF8F5] dark:bg-[#1A2421] border-l-4 border-[#B85D19] space-y-3 shadow-xs"
           >
             <div className="flex items-center justify-between text-xs font-bold text-[#B85D19] pb-1 border-b border-[#B85D19]/20">
               <span className="flex items-center gap-1.5">
@@ -579,7 +609,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
               <span className="font-mono">{header}</span>
             </div>
             {arabicMatch && (
-              <p dir="rtl" className="font-serif text-xl leading-loose font-bold text-[#141615] dark:text-[#E8E6E1] text-right">
+              <p dir="rtl" className="font-arabic text-xl leading-loose font-bold text-[#141615] dark:text-[#E8E6E1] text-right">
                 {arabicMatch[1]}
               </p>
             )}
@@ -597,7 +627,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
         );
       }
 
-      // Check for Fiqh Mas'ala block
+      // 3. Fiqh Block
       const fiqhMatch = part.match(/\[মাসআলা:\s*([^\]]*)\]([\s\S]*?)\[\/মাসআলা\]/);
       if (fiqhMatch) {
         const header = fiqhMatch[1];
@@ -606,7 +636,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
         return (
           <div
             key={pIdx}
-            className="my-5 p-4 bg-[#F6ECE3] dark:bg-[#2A231C] border border-[#B85D19] space-y-2"
+            className="my-5 p-4 bg-[#F6ECE3] dark:bg-[#2A231C] border border-[#B85D19] space-y-2 shadow-xs"
           >
             <div className="flex items-center justify-between text-xs font-bold text-[#B85D19]">
               <span className="flex items-center gap-1">
@@ -614,6 +644,56 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
                 <span>ফিকহী হুকুম ও মাসআলা</span>
               </span>
               <span className="font-mono bg-[#B85D19] text-white px-2 py-0.5">{header}</span>
+            </div>
+            <p className="text-xs sm:text-sm font-medium leading-relaxed text-[#141615] dark:text-[#E8E6E1] whitespace-pre-line">
+              {content.trim()}
+            </p>
+          </div>
+        );
+      }
+
+      // 4. Salaf Quote Block
+      const quoteMatch = part.match(/\[উক্তি:\s*([^\]]*)\]([\s\S]*?)\[\/উক্তি\]/);
+      if (quoteMatch) {
+        const header = quoteMatch[1];
+        const content = quoteMatch[2];
+
+        return (
+          <div
+            key={pIdx}
+            className="my-5 p-4 bg-[#E6F0EC] dark:bg-[#15332A] border-l-4 border-[#0B4F3B] space-y-2 shadow-xs"
+          >
+            <div className="flex items-center justify-between text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
+              <span className="flex items-center gap-1.5">
+                <Quote className="w-4 h-4" />
+                <span>সালাফে সালেহীনের প্রজ্ঞাময় উক্তি</span>
+              </span>
+              <span className="font-mono">{header}</span>
+            </div>
+            <p className="text-sm font-serif italic leading-relaxed text-[#141615] dark:text-[#E8E6E1] whitespace-pre-line">
+              “{content.trim()}”
+            </p>
+          </div>
+        );
+      }
+
+      // 5. Warning / Misconception Refutation Block
+      const warningMatch = part.match(/\[সতর্কতা:\s*([^\]]*)\]([\s\S]*?)\[\/সতর্কতা\]/);
+      if (warningMatch) {
+        const header = warningMatch[1];
+        const content = warningMatch[2];
+
+        return (
+          <div
+            key={pIdx}
+            className="my-5 p-4 bg-[#FBEAE8] dark:bg-[#331D1A] border-l-4 border-[#DC2626] space-y-2 shadow-xs"
+          >
+            <div className="flex items-center justify-between text-xs font-bold text-[#DC2626]">
+              <span className="flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                <span>সতর্কতামূলক বিশ্লেষণ ও তাহকীক</span>
+              </span>
+              <span className="font-mono">{header}</span>
             </div>
             <p className="text-xs sm:text-sm font-medium leading-relaxed text-[#141615] dark:text-[#E8E6E1] whitespace-pre-line">
               {content.trim()}
@@ -640,7 +720,10 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className={`space-y-5 transition-all ${isZenMode ? 'fixed inset-0 z-50 bg-[#FAF8F5] dark:bg-[#101514] p-4 sm:p-8 overflow-y-auto' : ''}`}
+    >
       {/* RECOVERABLE DRAFT BANNER */}
       {hasRecoverableDraft && (
         <div className="bg-[#FFF6E5] border-2 border-[#B85D19] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
@@ -676,24 +759,24 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
 
       {/* TOAST / ALERTS */}
       {successMsg && (
-        <div className="bg-[#E6F0EC] border-2 border-[#0B4F3B] text-[#0B4F3B] p-4 font-semibold flex items-center gap-3">
+        <div className="bg-[#E6F0EC] border-2 border-[#0B4F3B] text-[#0B4F3B] p-4 font-semibold flex items-center gap-3 shadow-xs">
           <CheckCircle className="w-5 h-5 text-[#0B4F3B]" />
           <span>{successMsg}</span>
         </div>
       )}
       {errorMsg && (
-        <div className="bg-[#FBEAE8] border-2 border-[#D9381E] text-[#D9381E] p-4 font-semibold flex items-center gap-3">
+        <div className="bg-[#FBEAE8] border-2 border-[#D9381E] text-[#D9381E] p-4 font-semibold flex items-center gap-3 shadow-xs">
           <AlertCircle className="w-5 h-5 text-[#D9381E]" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* STICKY TOP ACTION BAR */}
-      <div className="bg-[#FFFFFF] border-2 border-[#141615] p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sticky top-0 z-30 shadow-md">
+      <div className="bg-[#FFFFFF] dark:bg-[#171F1D] border-2 border-[#141615] p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sticky top-0 z-30 shadow-md">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/articles"
-            className="p-2 bg-[#FAF8F5] border border-[#DCD7CD] text-[#141615] hover:bg-[#F2EFE9] transition-colors"
+            className="p-2 bg-[#FAF8F5] dark:bg-[#232F2B] border border-[#DCD7CD] dark:border-[#3B4D47] text-[#141615] dark:text-[#E8E6E1] hover:bg-[#F2EFE9] transition-colors"
             title="তালিকায় ফিরে যান"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -701,25 +784,25 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-mono font-bold text-[#B85D19] uppercase tracking-wider">
-                {isEdit ? 'প্রবন্ধ সম্পাদনা মোড' : 'নতুন প্রবন্ধ রচনা স্টুডিও'}
+                {isEdit ? 'প্রবন্ধ সম্পাদনা স্টুডিও ৩.০' : 'নতুন প্রবন্ধ রচনা স্টুডিও ৩.০'}
               </span>
               {draftSavedTime && (
-                <span className="text-[10px] text-[#0B4F3B] bg-[#E6F0EC] px-1.5 py-0.5 font-mono">
+                <span className="text-[10px] text-[#0B4F3B] dark:text-[#4CC39A] bg-[#E6F0EC] dark:bg-[#15332A] px-1.5 py-0.5 font-mono">
                   ✓ অটো-সেভ {draftSavedTime}
                 </span>
               )}
             </div>
-            <h1 className="font-editorial text-lg sm:text-xl font-bold text-[#0B4F3B] truncate max-w-md sm:max-w-xl">
+            <h1 className="font-editorial text-lg sm:text-xl font-bold text-[#0B4F3B] dark:text-[#4CC39A] truncate max-w-xs sm:max-w-md md:max-w-lg">
               {title || (isEdit ? 'সম্পাদনা মোড' : 'শিরোনামহীন নতুন প্রবন্ধ')}
             </h1>
           </div>
         </div>
 
-        {/* CONTROLS: STATS + VIEW TOGGLE + SAVE */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        {/* CONTROLS: STATS + CO-PILOT ACTIONS + VIEW TOGGLE + SAVE */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           {/* WORD STATS PILL */}
-          <div className="hidden xl:flex items-center gap-2 bg-[#FAF8F5] border border-[#141615] px-2.5 py-1 text-xs">
-            <span className="font-mono text-[#0B4F3B] font-bold">
+          <div className="hidden lg:flex items-center gap-2 bg-[#FAF8F5] dark:bg-[#232F2B] border border-[#141615] px-2.5 py-1 text-xs">
+            <span className="font-mono text-[#0B4F3B] dark:text-[#4CC39A] font-bold">
               {toBengaliDigits(stats.words)} শব্দ
             </span>
             <span className="text-[#6E7571]">•</span>
@@ -729,22 +812,56 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
             <button
               type="button"
               onClick={() => setReadTime(stats.readTimeString)}
-              className="text-[10px] text-[#0B4F3B] hover:underline font-bold ml-1 border-l pl-2 border-[#DCD7CD]"
+              className="text-[10px] text-[#0B4F3B] dark:text-[#4CC39A] hover:underline font-bold ml-1 border-l pl-2 border-[#DCD7CD] dark:border-[#3B4D47]"
               title="পাঠের সময় ইনপুটে সেট করুন"
             >
               সিঙ্ক
             </button>
           </div>
 
+          {/* OUTLINE CO-PILOT MODAL TRIGGER */}
+          <button
+            type="button"
+            onClick={() => setFrameworkModalOpen(true)}
+            className="px-2.5 py-1.5 bg-[#FFF6E5] hover:bg-[#FCE8CC] border border-[#B85D19] text-[#B85D19] text-xs font-bold flex items-center gap-1 shadow-xs"
+            title="১-ক্লিক আর্টিকেল আউটলাইন জেনারেটর"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">আউটলাইন সহকারী</span>
+          </button>
+
+          {/* REVISIONS & EXPORT MODAL TRIGGER */}
+          <button
+            type="button"
+            onClick={() => setRevisionModalOpen(true)}
+            className="px-2.5 py-1.5 bg-[#FAF8F5] dark:bg-[#232F2B] hover:bg-[#E6F0EC] border border-[#141615] text-[#141615] dark:text-[#E8E6E1] text-xs font-bold flex items-center gap-1 shadow-xs"
+            title="রিভিশন হিস্ট্রি ও JSON/Markdown এক্সপোর্ট"
+          >
+            <History className="w-3.5 h-3.5 text-[#0B4F3B] dark:text-[#4CC39A]" />
+            <span className="hidden sm:inline">ব্যাকআপ ও ভার্সন</span>
+          </button>
+
+          {/* ZEN MODE TOGGLE */}
+          <button
+            type="button"
+            onClick={() => setIsZenMode(!isZenMode)}
+            className={`p-1.5 border border-[#141615] text-xs transition-colors ${
+              isZenMode ? 'bg-[#0B4F3B] text-white' : 'bg-white dark:bg-[#232F2B] text-[#141615] dark:text-[#E8E6E1]'
+            }`}
+            title={isZenMode ? 'সাধারণ মোডে ফিরুন' : 'জেন / মনোযোগ মোড'}
+          >
+            {isZenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+
           {/* VIEW MODE TOGGLE */}
-          <div className="flex items-center bg-[#FAF8F5] border border-[#141615] p-0.5">
+          <div className="flex items-center bg-[#FAF8F5] dark:bg-[#232F2B] border border-[#141615] p-0.5">
             <button
               type="button"
               onClick={() => setViewMode('editor')}
               className={`px-2.5 py-1 text-xs font-bold transition-colors ${
                 viewMode === 'editor'
                   ? 'bg-[#0B4F3B] text-white'
-                  : 'text-[#141615] hover:bg-[#F2EFE9]'
+                  : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#F2EFE9]'
               }`}
             >
               এডিটর
@@ -755,7 +872,7 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
               className={`px-2.5 py-1 text-xs font-bold transition-colors ${
                 viewMode === 'split'
                   ? 'bg-[#0B4F3B] text-white'
-                  : 'text-[#141615] hover:bg-[#F2EFE9]'
+                  : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#F2EFE9]'
               }`}
             >
               স্প্লিট
@@ -766,1107 +883,946 @@ export default function ArticleEditorForm({ initialArticle, isEdit = false }: Ar
               className={`px-2.5 py-1 text-xs font-bold transition-colors ${
                 viewMode === 'preview'
                   ? 'bg-[#0B4F3B] text-white'
-                  : 'text-[#141615] hover:bg-[#F2EFE9]'
+                  : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#F2EFE9]'
               }`}
             >
               প্রিভিউ
             </button>
           </div>
 
-          {liveUrl && (
-            <Link
-              href={liveUrl}
-              target="_blank"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FAF8F5] hover:bg-[#F2EFE9] text-[#0B4F3B] text-xs font-bold border border-[#141615]"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>লাইভ</span>
-            </Link>
-          )}
-
-          {isEdit && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="p-1.5 bg-[#FBEAE8] hover:bg-[#F7D4CF] text-[#D9381E] text-xs font-bold border border-[#D9381E]"
-              title="মুছুন"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-
+          {/* SUBMIT BUTTON */}
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs sm:text-sm font-bold border-2 border-[#141615] shadow-sm transition-transform active:translate-y-0.5 disabled:opacity-50"
+            className="px-4 py-1.5 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs font-bold border border-[#141615] flex items-center gap-1.5 shadow-sm disabled:opacity-50"
           >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 <span>সংরক্ষণ হচ্ছে...</span>
               </>
             ) : (
               <>
-                <Save className="w-4 h-4" />
-                <span>{isEdit ? 'আপডেট সংরক্ষণ' : 'প্রবন্ধ প্রকাশ করুন'}</span>
+                <Save className="w-3.5 h-3.5" />
+                <span>সংরক্ষণ করুন</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* WORKSPACE LAYOUT (EDITOR / SPLIT / PREVIEW) */}
-      <div className={`grid gap-6 ${viewMode === 'split' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-        {/* ======================================================== */}
-        {/* LEFT COLUMN: THE EDITORIAL FORM                          */}
-        {/* ======================================================== */}
-        {(viewMode === 'editor' || viewMode === 'split') && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* PRIMARY ARTICLE FIELDS (8 COLS) */}
-              <div className={`${viewMode === 'split' ? 'lg:col-span-12' : 'lg:col-span-8'} space-y-6`}>
-                {/* 1. TITLE & SUBTITLE */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 sm:p-6 space-y-4">
-                  <div className="flex items-center gap-2 pb-2 border-b border-[#F2EFE9]">
-                    <FileText className="w-4 h-4 text-[#0B4F3B]" />
-                    <h2 className="font-editorial text-base font-bold text-[#141615]">
-                      মূল শিরোনাম ও উপশিরোনাম
-                    </h2>
-                  </div>
+      {/* 5-MODULAR TAB NAVIGATION BAR */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 border-2 border-[#141615] bg-[#FFFFFF] dark:bg-[#171F1D] text-xs font-bold shadow-xs">
+        <button
+          type="button"
+          onClick={() => setActiveTab('basic')}
+          className={`py-3 px-3 flex items-center justify-center gap-2 border-r border-[#DCD7CD] dark:border-[#2A3834] transition-colors ${
+            activeTab === 'basic'
+              ? 'bg-[#0B4F3B] text-white'
+              : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>১. মৌলিক তথ্য ও পরিচয়</span>
+        </button>
 
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                      প্রবন্ধের পূর্ণাঙ্গ শিরোনাম <span className="text-[#D9381E]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={e => setTitle(e.target.value)}
-                      placeholder="যেমন: আল্লাহর রুবুবিয়্যাত: নিখিল জাহানের একমাত্র পালনকর্তা"
-                      className="w-full px-3.5 py-2.5 bg-[#FAF8F5] border border-[#141615] text-sm text-[#141615] font-semibold focus:outline-none focus:ring-2 focus:ring-[#0B4F3B]"
-                      required
-                    />
-                  </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('hero')}
+          className={`py-3 px-3 flex items-center justify-center gap-2 border-r border-[#DCD7CD] dark:border-[#2A3834] transition-colors ${
+            activeTab === 'hero'
+              ? 'bg-[#0B4F3B] text-white'
+              : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>২. প্রচ্ছদ উদ্ধৃতি ও সারসংক্ষেপ</span>
+        </button>
 
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                      উপশিরোনাম ও সংক্ষিপ্ত বার্তা
-                    </label>
-                    <input
-                      type="text"
-                      value={subtitle}
-                      onChange={e => setSubtitle(e.target.value)}
-                      placeholder="যেমন: সৃষ্টি, পরিচালনা ও কর্তৃত্বের একক অধিপতিত্বের প্রামাণ্য শাস্ত্রীয় পর্যালোচনা"
-                      className="w-full px-3.5 py-2 bg-[#FAF8F5] border border-[#DCD7CD] text-xs sm:text-sm text-[#141615] focus:outline-none focus:border-[#141615]"
-                    />
-                  </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('body')}
+          className={`py-3 px-3 flex items-center justify-center gap-2 border-r border-[#DCD7CD] dark:border-[#2A3834] transition-colors ${
+            activeTab === 'body'
+              ? 'bg-[#0B4F3B] text-white'
+              : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>৩. অনুচ্ছেদ ও ইসলামিক ব্লকস</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('refs')}
+          className={`py-3 px-3 flex items-center justify-center gap-2 border-r border-[#DCD7CD] dark:border-[#2A3834] transition-colors ${
+            activeTab === 'refs'
+              ? 'bg-[#0B4F3B] text-white'
+              : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
+          }`}
+        >
+          <Bookmark className="w-4 h-4" />
+          <span>৪. তথ্যসূত্র ও ট্যাগস</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('seo')}
+          className={`py-3 px-3 flex items-center justify-center gap-2 transition-colors ${
+            activeTab === 'seo'
+              ? 'bg-[#B85D19] text-white'
+              : 'text-[#141615] dark:text-[#E8E6E1] hover:bg-[#FAF8F5] dark:hover:bg-[#232F2B]'
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          <span>৫. এসইও ও প্রিভিউ স্কোর</span>
+        </button>
+      </div>
+
+      {/* MAIN WORKSPACE: SPLIT GRID OR SINGLE */}
+      <div
+        className={
+          viewMode === 'split'
+            ? 'grid grid-cols-1 lg:grid-cols-12 gap-6'
+            : viewMode === 'preview'
+            ? 'max-w-4xl mx-auto'
+            : 'space-y-6'
+        }
+      >
+        {/* LEFT / MAIN COLUMN: FORM TABS (Hidden in full preview mode) */}
+        {viewMode !== 'preview' && (
+          <div className={viewMode === 'split' ? 'lg:col-span-6 space-y-5' : 'space-y-5'}>
+            {/* TAB 1: BASIC INFO & METADATA */}
+            {activeTab === 'basic' && (
+              <div className="p-5 bg-white dark:bg-[#1A2421] border-2 border-[#141615] space-y-4 shadow-xs">
+                <div className="flex items-center justify-between border-b border-[#DCD7CD] dark:border-[#2A3834] pb-2">
+                  <h3 className="font-editorial text-base font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#B85D19]" />
+                    <span>প্রবন্ধের শিরোনাম, পরিচিতি ও শ্রেণীবিন্যাস</span>
+                  </h3>
+                  <span className="text-xs text-[#6E7571]">ধাপ ১ / ৫</span>
                 </div>
 
-                {/* 2. SUMMARY (EXECUTIVE OVERVIEW) */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 sm:p-6 space-y-4">
-                  <div className="flex items-center gap-2 pb-2 border-b border-[#F2EFE9]">
-                    <BookOpen className="w-4 h-4 text-[#0B4F3B]" />
-                    <h2 className="font-editorial text-base font-bold text-[#141615]">
-                      মূল সারসংক্ষেপ ও ভূমিকা (Executive Summary) <span className="text-[#D9381E]">*</span>
-                    </h2>
-                  </div>
-                  <p className="text-xs text-[#6E7571]">
-                    পাঠক প্রবন্ধের শুরুতে এই ভূমিকাটি পড়বেন। কুরআন ও সুন্নাহর আলোকে প্রবন্ধের নির্যাস তুলে ধরুন।
-                  </p>
-                  <textarea
-                    rows={4}
-                    value={summary}
-                    onChange={e => setSummary(e.target.value)}
-                    placeholder="কুরআনের দৃষ্টিতে আল্লাহর রুবুবিয়্যাত হলো এই নিখিল বিশ্বের একক সৃষ্টি, লালন-পালন ও সার্বভৌম পরিচালনা..."
-                    className="w-full px-3.5 py-2.5 bg-[#FAF8F5] border border-[#141615] text-sm text-[#141615] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#0B4F3B]"
-                    required
+                {/* Title */}
+                <div>
+                  <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                    প্রবন্ধের পূর্ণাঙ্গ শিরোনাম (Title) *
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="যেমন: তাওহীদের অর্থ, তাৎপর্য ও মানব মর্যাদায় এর বৈপ্লবিক প্রভাব"
+                    className="w-full p-2.5 text-sm sm:text-base font-bold bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#141615] text-[#0B4F3B] dark:text-[#4CC39A]"
                   />
                 </div>
 
-                {/* 3. ARABIC CITATION BOX */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 sm:p-6 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#F2EFE9]">
-                    <div className="flex items-center gap-2">
-                      <Bookmark className="w-4 h-4 text-[#B85D19]" />
-                      <h2 className="font-editorial text-base font-bold text-[#141615]">
-                        শীর্ষ প্রামাণ্য আরবী দলিল ও সনদ (Citation Box)
-                      </h2>
-                    </div>
-                    <span className="text-[11px] font-mono text-[#B85D19] bg-[#F6ECE3] px-2 py-0.5 border border-[#B85D19]">
-                      প্রধান আয়াত / হাদিস
-                    </span>
+                {/* Subtitle */}
+                <div>
+                  <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                    উপ-শিরোনাম বা সাবটাইটেল (Subtitle)
+                  </label>
+                  <input
+                    type="text"
+                    value={subtitle}
+                    onChange={(e) => setSubtitle(e.target.value)}
+                    placeholder="যেমন: কুরআন ও সুন্নাহর আলোকে রুবূবিয়্যাহ ও উলূহিয়্যাহর বিশদ পর্যালোচনা"
+                    className="w-full p-2 text-xs sm:text-sm bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                  />
+                </div>
+
+                {/* Section & Category */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] mb-1">
+                      মূল বিভাগ (Primary Section) *
+                    </label>
+                    <select
+                      value={sectionId}
+                      onChange={(e) => setSectionId(e.target.value)}
+                      className="w-full p-2.5 text-xs bg-white dark:bg-[#1F2926] border border-[#141615]"
+                    >
+                      {SECTIONS_DATA.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.arabicTitle})
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                      মূল আরবী পাঠ (Arabic Text)
+                    <label className="block text-xs font-bold text-[#B85D19] mb-1">
+                      ক্যাটেগরি (Category) *
                     </label>
-                    <textarea
-                      dir="rtl"
-                      rows={3}
-                      value={citationArabic}
-                      onChange={e => setCitationArabic(e.target.value)}
-                      placeholder="الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ"
-                      className="w-full px-4 py-2.5 bg-[#FAF8F5] border border-[#141615] text-lg sm:text-xl font-serif text-[#0B4F3B] leading-loose text-right focus:outline-none focus:ring-2 focus:ring-[#0B4F3B]"
+                    <select
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      disabled={loadingCategories}
+                      className="w-full p-2.5 text-xs bg-white dark:bg-[#1F2926] border border-[#141615]"
+                    >
+                      {categoriesList.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} {c.arabic_name ? `(${c.arabic_name})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Author & Reviewer */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                      মূল লেখক বা সংকলক
+                    </label>
+                    <input
+                      type="text"
+                      value={author}
+                      onChange={(e) => setAuthor(e.target.value)}
+                      className="w-full p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
                     />
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                        উচ্চারণ / লিপ্যন্তর (Transliteration)
-                      </label>
-                      <input
-                        type="text"
-                        value={citationTranslit}
-                        onChange={e => setCitationTranslit(e.target.value)}
-                        placeholder="আলহামদু লিল্লাহি রাব্বিল আলামীন"
-                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615] focus:outline-none focus:border-[#141615]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                        রেফারেন্স / সূত্র (যেমন: সূরা ফাতিহা ১:২)
-                      </label>
-                      <input
-                        type="text"
-                        value={citationRef}
-                        onChange={e => setCitationRef(e.target.value)}
-                        placeholder="সূরা আল-ফাতিহা ১:২"
-                        className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615] focus:outline-none focus:border-[#141615]"
-                      />
-                    </div>
-                  </div>
-
                   <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                      বাংলা অর্থ ও অনুবাদ
+                    <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                      তাহকীক ও সম্পাদনা আলেম
                     </label>
-                    <textarea
-                      rows={2}
-                      value={citationBengali}
-                      onChange={e => setCitationBengali(e.target.value)}
-                      placeholder="যাবতীয় প্রশংসা আল্লাহ তা'আলার জন্য, যিনি সকল সৃষ্টির একমাত্র পালনকর্তা।"
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#DCD7CD] text-xs sm:text-sm text-[#141615] focus:outline-none focus:border-[#141615]"
+                    <input
+                      type="text"
+                      value={reviewer}
+                      onChange={(e) => setReviewer(e.target.value)}
+                      className="w-full p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
                     />
                   </div>
                 </div>
 
-                {/* 4. KEY TAKEAWAYS WITH REORDERING */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 sm:p-6 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#F2EFE9]">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#0B4F3B]" />
-                      <h2 className="font-editorial text-base font-bold text-[#141615]">
-                        গুরুত্বপূর্ণ শাস্ত্রীয় পয়েন্ট (Key Takeaways)
-                      </h2>
+                {/* Published Date & Reading Time */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                      প্রকাশকাল
+                    </label>
+                    <input
+                      type="text"
+                      value={publishedAt}
+                      onChange={(e) => setPublishedAt(e.target.value)}
+                      className="w-full p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                      পাঠের সময়
+                    </label>
+                    <input
+                      type="text"
+                      value={readTime}
+                      onChange={(e) => setReadTime(e.target.value)}
+                      className="w-full p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                      প্রকাশনা স্ট্যাটাস
+                    </label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as any)}
+                      className="w-full p-2 text-xs bg-white dark:bg-[#1F2926] border border-[#141615]"
+                    >
+                      <option value="published">প্রকাশিত (Published)</option>
+                      <option value="draft">ড্রাফট (Draft)</option>
+                      <option value="review">পর্যালোচনাধীন (In Review)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Slug & Canonical URL Helper */}
+                <div className="p-3 bg-[#FAF8F5] dark:bg-[#232F2B] border border-[#DCD7CD] dark:border-[#3B4D47] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
+                      ইউআরএল স্লাগ (Canonical Slug)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateSlug}
+                      className="text-[11px] text-[#B85D19] hover:underline font-bold"
+                    >
+                      শিরোনাম থেকে অটো-জেনারেট
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    placeholder="article-url-slug"
+                    className="w-full p-2 text-xs font-mono bg-white dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                  />
+                  {liveUrl && (
+                    <div className="text-[11px] text-[#6E7571] flex items-center gap-1.5 truncate">
+                      <Globe className="w-3.5 h-3.5 text-[#0B4F3B]" />
+                      <span className="truncate">লাইভ ঠিকানা: {liveUrl}</span>
                     </div>
+                  )}
+                </div>
+
+                {/* Lead Article Toggle */}
+                <div className="flex items-center gap-2 pt-2 border-t border-[#DCD7CD] dark:border-[#2A3834]">
+                  <input
+                    type="checkbox"
+                    id="isLead"
+                    checked={isLead}
+                    onChange={(e) => setIsLead(e.target.checked)}
+                    className="w-4 h-4 text-[#0B4F3B]"
+                  />
+                  <label htmlFor="isLead" className="text-xs font-bold text-[#141615] dark:text-[#E8E6E1]">
+                    ক্যাটেগরির প্রধান লিড প্রবন্ধ হিসেবে প্রদর্শন করুন
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: HERO CITATION & SUMMARY */}
+            {activeTab === 'hero' && (
+              <div className="p-5 bg-white dark:bg-[#1A2421] border-2 border-[#141615] space-y-4 shadow-xs">
+                <div className="flex items-center justify-between border-b border-[#DCD7CD] dark:border-[#2A3834] pb-2">
+                  <h3 className="font-editorial text-base font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-[#B85D19]" />
+                    <span>প্রচ্ছদ প্রধান উদ্ধৃতি ও সম্পাদকীয় সারসংক্ষেপ</span>
+                  </h3>
+                  <span className="text-xs text-[#6E7571]">ধাপ ২ / ৫</span>
+                </div>
+
+                {/* Arabic Diacritics Palette for Hero Citation */}
+                <ArabicPalette
+                  onInsert={(symbol) => setCitationArabic((prev) => prev + symbol)}
+                  compact
+                />
+
+                {/* Primary Citation Arabic */}
+                <div>
+                  <label className="block text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] mb-1">
+                    প্রধান আয়াত বা মূল হাদিসের আরবী ইবারত (Hero Citation Arabic)
+                  </label>
+                  <textarea
+                    dir="rtl"
+                    rows={2}
+                    value={citationArabic}
+                    onChange={(e) => setCitationArabic(e.target.value)}
+                    placeholder="قُلْ إِنَّ صَلَاتِي وَنُسُكِي وَمَحْيَايَ وَمَمَاتِي لِلَّهِ رَبِّ الْعَالَمِينَ ۝"
+                    className="w-full p-3 font-arabic text-xl leading-loose bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#141615] text-right"
+                  />
+                </div>
+
+                {/* Transliteration & Reference */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                      আরবী উচ্চারণ (Transliteration)
+                    </label>
+                    <input
+                      type="text"
+                      value={citationTranslit}
+                      onChange={(e) => setCitationTranslit(e.target.value)}
+                      placeholder="যেমন: কুল ইন্না সালাতী ওয়া নুসূকী..."
+                      className="w-full p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                      উদ্ধৃতির সুনির্দিষ্ট সূত্র (Reference)
+                    </label>
+                    <input
+                      type="text"
+                      value={citationRef}
+                      onChange={(e) => setCitationRef(e.target.value)}
+                      placeholder="যেমন: সূরা আল-আনআম (৬): ১৬২"
+                      className="w-full p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                    />
+                  </div>
+                </div>
+
+                {/* Bengali Translation */}
+                <div>
+                  <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                    উদ্ধৃতির বঙ্গানুবাদ (Hero Translation) *
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={citationBengali}
+                    onChange={(e) => setCitationBengali(e.target.value)}
+                    placeholder="বলুন, নিশ্চয়ই আমার সালাত, আমার কোরবানি, আমার জীবন এবং আমার মরণ বিশ্বজগতের প্রতিপালক আল্লাহরই জন্য..."
+                    className="w-full p-3 text-sm bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                  />
+                </div>
+
+                {/* Editorial Summary */}
+                <div className="pt-2 border-t border-[#DCD7CD] dark:border-[#2A3834]">
+                  <label className="block text-xs font-bold text-[#B85D19] mb-1">
+                    সম্পাদকীয় সারসংক্ষেপ ও ভূমিকা (Editorial Summary) *
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="এই প্রবন্ধে তাওহীদের মূল তাৎপর্য, রুবূবিয়্যাহ ও উলূহিয়্যাহর পার্থক্য এবং সমকালীন জীবনে একজন মুমিনের আমল পরিশুদ্ধির প্রামাণ্য দিকনির্দেশনা সংকলিত হয়েছে..."
+                    className="w-full p-3 text-sm bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#141615]"
+                  />
+                </div>
+
+                {/* Key Takeaways Builder */}
+                <div className="space-y-3 pt-2 border-t border-[#DCD7CD] dark:border-[#2A3834]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-[#B85D19]" />
+                      <span>প্রবন্ধের মূল শিক্ষা ও সারসংক্ষেপ (Key Takeaways)</span>
+                    </label>
                     <button
                       type="button"
                       onClick={addTakeaway}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-[#0B4F3B] hover:underline"
+                      className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-1 hover:underline"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>পয়েন্ট যোগ করুন</span>
+                      <span>নতুন পয়েন্ট যোগ</span>
                     </button>
                   </div>
 
-                  <div className="space-y-2.5">
-                    {keyTakeaways.map((point, idx) => (
+                  <div className="space-y-2">
+                    {keyTakeaways.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-[#E6F0EC] text-[#0B4F3B] text-xs font-bold flex items-center justify-center shrink-0 border border-[#176B52]">
-                          {idx + 1}
+                        <span className="w-5 text-center text-xs font-bold text-[#6E7571]">
+                          {toBengaliDigits(idx + 1)}.
                         </span>
                         <input
                           type="text"
-                          value={point}
-                          onChange={e => handleTakeawayChange(idx, e.target.value)}
-                          placeholder="পয়েন্ট লিখুন (যেমন: রুবুবিয়্যাত হলো সকল সৃষ্টির পালনকর্তৃত্বের সাক্ষ্য...)"
-                          className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-[#DCD7CD] text-xs sm:text-sm text-[#141615] focus:outline-none focus:border-[#141615]"
+                          value={item}
+                          onChange={(e) => handleTakeawayChange(idx, e.target.value)}
+                          placeholder="যেমন: তাওহীদুল উলূহিয়্যাহ মানবজাতির মুক্তির মূল চাবিকাঠি"
+                          className="flex-1 p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
                         />
+                        <button
+                          type="button"
+                          onClick={() => moveTakeaway(idx, 'up')}
+                          disabled={idx === 0}
+                          className="p-1.5 border border-[#DCD7CD] text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
+                          title="উপরে নিন"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveTakeaway(idx, 'down')}
+                          disabled={idx === keyTakeaways.length - 1}
+                          className="p-1.5 border border-[#DCD7CD] text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
+                          title="নিচে নিন"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeTakeaway(idx)}
+                          className="p-1.5 border border-[#DCD7CD] text-[#D9381E] hover:bg-[#FBEAE8]"
+                          title="মুছে ফেলুন"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
-                        {/* REORDER BUTTONS */}
-                        <div className="flex items-center gap-1">
+            {/* TAB 3: CONTENT SECTIONS & ISLAMIC BLOCKS */}
+            {activeTab === 'body' && (
+              <div className="p-5 bg-white dark:bg-[#1A2421] border-2 border-[#141615] space-y-5 shadow-xs">
+                <div className="flex flex-wrap items-center justify-between border-b border-[#DCD7CD] dark:border-[#2A3834] pb-2 gap-2">
+                  <div>
+                    <h3 className="font-editorial text-base font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-[#B85D19]" />
+                      <span>প্রবন্ধের মূল অনুচ্ছেদ ও ইসলামিক ব্লক বিন্যাস</span>
+                    </h3>
+                    <p className="text-xs text-[#6E7571]">
+                      মোট অনুচ্ছেদ: {contentSections.length}টি • প্রতি অনুচ্ছেদে প্রামাণ্য ইসলামিক ব্লক সংযুক্ত করুন।
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addContentSection}
+                    className="px-3 py-1.5 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs font-bold flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>নতুন অনুচ্ছেদ যোগ</span>
+                  </button>
+                </div>
+
+                {/* SECTION CARDS */}
+                <div className="space-y-4">
+                  {contentSections.map((sec, secIdx) => (
+                    <div
+                      key={secIdx}
+                      className="p-4 bg-[#FAF8F5] dark:bg-[#171F1D] border-2 border-[#141615] space-y-3 shadow-xs"
+                    >
+                      {/* Section Card Top Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#DCD7CD] dark:border-[#2A3834] pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-[#0B4F3B] text-white text-xs font-bold flex items-center justify-center font-mono">
+                            {toBengaliDigits(secIdx + 1)}
+                          </span>
+                          <span className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
+                            অনুচ্ছেদ {toBengaliDigits(secIdx + 1)}
+                          </span>
+                        </div>
+
+                        {/* Section Actions: Block Inserter + Re-order + Duplicate + Delete */}
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => moveTakeaway(idx, 'up')}
-                            disabled={idx === 0}
-                            className="p-1.5 text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
+                            onClick={() => openBlockBuilder(secIdx)}
+                            className="px-2.5 py-1 bg-[#FFF6E5] hover:bg-[#FCE8CC] border border-[#B85D19] text-[#B85D19] text-xs font-bold flex items-center gap-1"
+                            title="কুরআন, হাদিস বা ফিকহী ব্লক যুক্ত করুন"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>+ ইসলামিক ব্লক</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => duplicateContentSection(secIdx)}
+                            className="p-1 border border-[#DCD7CD] dark:border-[#3B4D47] text-[#6E7571] hover:text-[#141615]"
+                            title="অনুলিপি তৈরি করুন"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveContentSection(secIdx, 'up')}
+                            disabled={secIdx === 0}
+                            className="p-1 border border-[#DCD7CD] dark:border-[#3B4D47] text-[#6E7571] disabled:opacity-30"
                             title="উপরে নিন"
                           >
                             <ArrowUp className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => moveTakeaway(idx, 'down')}
-                            disabled={idx === keyTakeaways.length - 1}
-                            className="p-1.5 text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
+                            onClick={() => moveContentSection(secIdx, 'down')}
+                            disabled={secIdx === contentSections.length - 1}
+                            className="p-1 border border-[#DCD7CD] dark:border-[#3B4D47] text-[#6E7571] disabled:opacity-30"
                             title="নিচে নিন"
                           >
                             <ArrowDown className="w-3.5 h-3.5" />
                           </button>
-                          {keyTakeaways.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeTakeaway(idx)}
-                              className="p-1.5 text-[#D9381E] hover:bg-[#FBEAE8]"
-                              title="মুছুন"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 5. CONTENT SECTIONS WITH ISLAMIC BLOCK INSERTER & REORDER */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 sm:p-6 space-y-5">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#F2EFE9]">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-[#0B4F3B]" />
-                      <h2 className="font-editorial text-base font-bold text-[#141615]">
-                        বিস্তারিত বিষয়ভিত্তিক পরিচ্ছেদ (Content Sections)
-                      </h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={addContentSection}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0B4F3B] text-white text-xs font-bold hover:bg-[#083B2C] transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>নতুন পরিচ্ছেদ</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-6">
-                    {contentSections.map((sec, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-[#FAF8F5] border-2 border-[#141615] p-4 sm:p-5 space-y-3 relative group shadow-sm"
-                      >
-                        <div className="flex items-center justify-between pb-2 border-b border-[#DCD7CD]">
-                          <span className="text-xs font-mono font-bold text-[#B85D19]">
-                            পরিচ্ছেদ #{toBengaliDigits(idx + 1)}
-                          </span>
-
-                          <div className="flex items-center gap-1.5">
-                            {/* REORDER BUTTONS */}
-                            <button
-                              type="button"
-                              onClick={() => moveContentSection(idx, 'up')}
-                              disabled={idx === 0}
-                              className="p-1 text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
-                              title="উপরে নিন"
-                            >
-                              <ArrowUp className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moveContentSection(idx, 'down')}
-                              disabled={idx === contentSections.length - 1}
-                              className="p-1 text-[#6E7571] hover:text-[#141615] disabled:opacity-30"
-                              title="নিচে নিন"
-                            >
-                              <ArrowDown className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => duplicateContentSection(idx)}
-                              className="p-1 text-[#0B4F3B] hover:text-[#083B2C]"
-                              title="ডুপ্লিকেট করুন"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </button>
-                            {contentSections.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeContentSection(idx)}
-                                className="p-1 text-[#D9381E] hover:bg-[#FBEAE8]"
-                                title="মুছে ফেলুন"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-[#141615] mb-1">
-                            পরিচ্ছেদের শিরোনাম
-                          </label>
-                          <input
-                            type="text"
-                            value={sec.heading}
-                            onChange={e => handleSectionChangeContent(idx, 'heading', e.target.value)}
-                            placeholder="যেমন: ১. রুবুবিয়্যাতের পারিভাষিক সংজ্ঞা ও তাৎপর্য"
-                            className="w-full px-3 py-2 bg-[#FFFFFF] border border-[#DCD7CD] text-xs sm:text-sm font-semibold text-[#141615] focus:outline-none focus:border-[#141615]"
-                          />
-                        </div>
-
-                        {/* ISLAMIC BLOCK INSERTER TOOLBAR */}
-                        <div className="flex flex-wrap items-center gap-2 pt-1 pb-1">
-                          <span className="text-[11px] font-bold text-[#6E7571]">
-                            ইসলামিক ব্লক ইনসার্টার:
-                          </span>
                           <button
                             type="button"
-                            onClick={() => openBlockBuilder(idx, 'quran')}
-                            className="px-2 py-1 bg-[#E6F0EC] hover:bg-[#D5E6DF] text-[#0B4F3B] text-[11px] font-bold border border-[#0B4F3B] inline-flex items-center gap-1"
-                          >
-                            <BookOpen className="w-3 h-3" />
-                            <span>+ কুরআন আয়াত</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openBlockBuilder(idx, 'hadith')}
-                            className="px-2 py-1 bg-[#F6ECE3] hover:bg-[#EEDBCB] text-[#B85D19] text-[11px] font-bold border border-[#B85D19] inline-flex items-center gap-1"
-                          >
-                            <Bookmark className="w-3 h-3" />
-                            <span>+ হাদিস উদ্ধৃতি</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openBlockBuilder(idx, 'fiqh')}
-                            className="px-2 py-1 bg-[#FAF8F5] hover:bg-[#F2EFE9] text-[#141615] text-[11px] font-bold border border-[#141615] inline-flex items-center gap-1"
-                          >
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>+ ফিকহী মাসআলা</span>
-                          </button>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-[#141615] mb-1">
-                            বিশদ বিবরণ ও শরীয়াহ বিশ্লেষণ
-                          </label>
-                          <textarea
-                            rows={7}
-                            value={sec.body}
-                            onChange={e => handleSectionChangeContent(idx, 'body', e.target.value)}
-                            placeholder="বিস্তারিত প্রবন্ধের অংশ লিখুন (প্যারাগ্রাফ ও ইসলামিক ব্লক স্বয়ংক্রিয়ভাবে রেন্ডার হবে)..."
-                            className="w-full px-3.5 py-2.5 bg-[#FFFFFF] border border-[#DCD7CD] text-xs sm:text-sm text-[#141615] leading-relaxed focus:outline-none focus:border-[#141615]"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 6. REFERENCES */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 sm:p-6 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#F2EFE9]">
-                    <div className="flex items-center gap-2">
-                      <Bookmark className="w-4 h-4 text-[#0B4F3B]" />
-                      <h2 className="font-editorial text-base font-bold text-[#141615]">
-                        প্রামাণ্য গ্রন্থপঞ্জি ও তথ্যসূত্র (References)
-                      </h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={addReference}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-[#0B4F3B] hover:underline"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>রেফারেন্স যোগ করুন</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {references.map((ref, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded bg-[#F2EFE9] text-[#6E7571] text-xs font-mono font-bold flex items-center justify-center shrink-0 border border-[#DCD7CD]">
-                          [{idx + 1}]
-                        </span>
-                        <input
-                          type="text"
-                          value={ref}
-                          onChange={e => handleRefChange(idx, e.target.value)}
-                          placeholder="যেমন: তাফসীরে ইবনে কাসীর, ১ম খণ্ড, পৃষ্ঠা ২৪-২৮"
-                          className="flex-1 px-3 py-2 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615] focus:outline-none focus:border-[#141615]"
-                        />
-                        {references.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeReference(idx)}
-                            className="p-2 text-[#D9381E] hover:bg-[#FBEAE8]"
-                            title="মুছুন"
+                            onClick={() => removeContentSection(secIdx)}
+                            className="p-1 border border-[#DCD7CD] text-[#DC2626] hover:bg-[#FBEAE8]"
+                            title="মুছে ফেলুন"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        )}
+                        </div>
+                      </div>
+
+                      {/* Section Heading */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                          অনুচ্ছেদের শিরোনাম (Heading 2)
+                        </label>
+                        <input
+                          type="text"
+                          value={sec.heading}
+                          onChange={(e) => handleSectionChangeContent(secIdx, 'heading', e.target.value)}
+                          placeholder="যেমন: ১. তাওহীদের পরিচয় ও মৌলিক তাৎপর্য"
+                          className="w-full p-2 text-xs sm:text-sm font-bold bg-white dark:bg-[#1F2926] border border-[#141615]"
+                        />
+                      </div>
+
+                      {/* Formatting Bar */}
+                      <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#2A3834] p-1 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => insertFormatting(secIdx, '**', '**')}
+                          className="p-1 hover:bg-[#FAF8F5] text-[#141615] dark:text-[#E8E6E1] font-bold"
+                          title="বোল্ড টেক্সট"
+                        >
+                          <Bold className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertFormatting(secIdx, '*', '*')}
+                          className="p-1 hover:bg-[#FAF8F5] text-[#141615] dark:text-[#E8E6E1] italic"
+                          title="তির্যক টেক্সট"
+                        >
+                          <Italic className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertFormatting(secIdx, '\n- ')}
+                          className="p-1 hover:bg-[#FAF8F5] text-[#141615] dark:text-[#E8E6E1]"
+                          title="বুলেট পয়েন্ট"
+                        >
+                          <List className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertFormatting(secIdx, '\n১. ')}
+                          className="p-1 hover:bg-[#FAF8F5] text-[#141615] dark:text-[#E8E6E1]"
+                          title="ক্রমিক নম্বর"
+                        >
+                          <ListOrdered className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => insertFormatting(secIdx, '\n> ')}
+                          className="p-1 hover:bg-[#FAF8F5] text-[#141615] dark:text-[#E8E6E1]"
+                          title="উদ্ধৃতি লাইন"
+                        >
+                          <Quote className="w-3.5 h-3.5" />
+                        </button>
+
+                        <div className="h-4 w-px bg-[#DCD7CD] dark:bg-[#3B4D47] mx-1" />
+
+                        {/* Quick Honorifics */}
+                        <span className="text-[10px] text-[#6E7571] mr-1">সম্মানসূচক:</span>
+                        {['ﷺ', 'ﷻ', 'ؑ', 'ؓ', 'ؒ'].map((sym) => (
+                          <button
+                            key={sym}
+                            type="button"
+                            onClick={() => insertFormatting(secIdx, sym)}
+                            className="px-1.5 py-0.5 bg-[#FAF8F5] dark:bg-[#232F2B] border border-[#DCD7CD] dark:border-[#3B4D47] hover:border-[#0B4F3B] text-xs font-serif text-[#0B4F3B] dark:text-[#4CC39A]"
+                          >
+                            {sym}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Section Body */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#141615] dark:text-[#E8E6E1] mb-1">
+                          অনুচ্ছেদের মূল বক্তব্য ও বিশ্লেষণ (Body Text with Islamic Blocks)
+                        </label>
+                        <textarea
+                          rows={6}
+                          value={sec.body}
+                          onChange={(e) => handleSectionChangeContent(secIdx, 'body', e.target.value)}
+                          placeholder="এই অনুচ্ছেদের বিস্তারিত আলোচনা লিখুন... অথবা উপরের '+ ইসলামিক ব্লক' বোতাম ব্যবহার করে কুরআন ও হাদিস যোগ করুন।"
+                          className="w-full p-3 text-xs sm:text-sm leading-relaxed bg-white dark:bg-[#1F2926] border border-[#141615] font-sans"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={addContentSection}
+                    className="px-4 py-2 bg-[#FAF8F5] dark:bg-[#232F2B] hover:bg-[#E6F0EC] border-2 border-dashed border-[#0B4F3B] text-[#0B4F3B] dark:text-[#4CC39A] text-xs font-bold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ আরও একটি নতুন অনুচ্ছেদ যোগ করুন</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: REFERENCES & TAXONOMY */}
+            {activeTab === 'refs' && (
+              <div className="p-5 bg-white dark:bg-[#1A2421] border-2 border-[#141615] space-y-4 shadow-xs">
+                <div className="flex items-center justify-between border-b border-[#DCD7CD] dark:border-[#2A3834] pb-2">
+                  <h3 className="font-editorial text-base font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-2">
+                    <Bookmark className="w-4 h-4 text-[#B85D19]" />
+                    <span>প্রামাণ্য গ্রন্থপঞ্জি ও বিষয়ভিত্তিক ট্যাগস</span>
+                  </h3>
+                  <span className="text-xs text-[#6E7571]">ধাপ ৪ / ৫</span>
+                </div>
+
+                {/* References Builder */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] block">
+                      তথ্যসূত্র ও গবেষণা গ্রন্থপঞ্জি (References) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addReference}
+                      className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-1 hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>নতুন সূত্র যোগ</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {references.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="w-5 text-center text-xs font-bold text-[#6E7571]">
+                          {toBengaliDigits(idx + 1)}.
+                        </span>
+                        <input
+                          type="text"
+                          value={item}
+                          onChange={(e) => handleRefChange(idx, e.target.value)}
+                          placeholder="যেমন: সহীহুল বুখারী — কিতাবুত তাওহীদ, হাদিস নং ৭৩৭২"
+                          className="flex-1 p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeReference(idx)}
+                          className="p-1.5 border border-[#DCD7CD] text-[#D9381E] hover:bg-[#FBEAE8]"
+                          title="মুছে ফেলুন"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* SIDEBAR METADATA COLUMN (4 COLS OR BOTTOM IN SPLIT) */}
-              <div className={`${viewMode === 'split' ? 'lg:col-span-12' : 'lg:col-span-4'} space-y-6`}>
-                {/* 1. PUBLISH STATUS & LEAD TOGGLE */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 space-y-4">
-                  <h3 className="font-editorial text-base font-bold text-[#0B4F3B] pb-2 border-b border-[#F2EFE9]">
-                    প্রকাশনা নিয়ন্ত্রণ
-                  </h3>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                      প্রকাশনা স্ট্যাটাস
-                    </label>
-                    <select
-                      value={status}
-                      onChange={e => setStatus(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#141615] text-xs font-bold text-[#141615] focus:outline-none focus:ring-1 focus:ring-[#0B4F3B]"
-                    >
-                      <option value="published">● লাইভ প্রকাশিত (Published)</option>
-                      <option value="draft">○ খসড়া সংরক্ষিত (Draft)</option>
-                      <option value="review">◐ সম্পাদনা পর্যালোচনায় (Review)</option>
-                    </select>
-                  </div>
-
-                  <label className="flex items-center gap-2.5 p-3 bg-[#FAF8F5] border border-[#DCD7CD] cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isLead}
-                      onChange={e => setIsLead(e.target.checked)}
-                      className="w-4 h-4 text-[#0B4F3B] rounded border-[#141615] focus:ring-[#0B4F3B]"
-                    />
-                    <div className="text-xs">
-                      <span className="font-bold text-[#141615] block">প্রধান প্রবন্ধ হিসেবে ফিচার করুন</span>
-                      <span className="text-[#6E7571] text-[11px]">পোর্টালের হোম ও বিভাগের শীর্ষে প্রদর্শিত হবে</span>
-                    </div>
+                {/* Tags */}
+                <div className="pt-3 border-t border-[#DCD7CD] dark:border-[#2A3834] space-y-2">
+                  <label className="block text-xs font-bold text-[#141615] dark:text-[#E8E6E1]">
+                    বিষয়ভিত্তিক ট্যাগসমূহ (কমা দিয়ে পৃথক করুন)
                   </label>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#141615] mb-1">
-                        তারিখ
-                      </label>
-                      <input
-                        type="text"
-                        value={publishedAt}
-                        onChange={e => setPublishedAt(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#141615] mb-1">
-                        পাঠের সময়
-                      </label>
-                      <input
-                        type="text"
-                        value={readTime}
-                        onChange={e => setReadTime(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. SECTION & DYNAMIC CATEGORY ASSIGNMENT */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#F2EFE9]">
-                    <h3 className="font-editorial text-base font-bold text-[#0B4F3B]">
-                      বিভাগ ও ক্যাটেগরি নির্বাচন
-                    </h3>
-                    <Link
-                      href="/admin/categories"
-                      target="_blank"
-                      className="text-[11px] font-bold text-[#B85D19] hover:underline"
-                    >
-                      + নতুন ক্যাটেগরি
-                    </Link>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                      প্রধান বিভাগ (Section) <span className="text-[#D9381E]">*</span>
-                    </label>
-                    <select
-                      value={sectionId}
-                      onChange={e => handleSectionChange(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#141615] text-xs font-bold text-[#141615] focus:outline-none"
-                    >
-                      {SECTIONS_DATA.map(sec => (
-                        <option key={sec.id} value={sec.id}>
-                          {sec.name} ({sec.arabicTitle})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1.5">
-                      নির্দিষ্ট ক্যাটেগরি (Category) <span className="text-[#D9381E]">*</span>
-                    </label>
-                    <select
-                      value={categoryId}
-                      onChange={e => setCategoryId(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#141615] text-xs font-semibold text-[#141615] focus:outline-none"
-                    >
-                      {categoriesList.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name} ({cat.badge})
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-[11px] text-[#6E7571] mt-1">
-                      {loadingCategories
-                        ? 'ক্যাটেগরি লোড হচ্ছে...'
-                        : `এই বিভাগে মোট ${categoriesList.length}টি ক্যাটেগরি রয়েছে।`}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3. IDENTIFIERS & SLUG */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#F2EFE9]">
-                    <h3 className="font-editorial text-base font-bold text-[#0B4F3B]">
-                      ইউআরএল ও পরিচিতি (Slug)
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={handleGenerateSlug}
-                      className="text-[11px] font-bold text-[#B85D19] hover:underline"
-                    >
-                      অটো জেনারেট
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      আর্টিকেল আইডি (ID)
-                    </label>
-                    <input
-                      type="text"
-                      value={id}
-                      onChange={e => setId(e.target.value)}
-                      placeholder="যেমন: allah-rububiyyah"
-                      className="w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#DCD7CD] text-xs font-mono text-[#141615]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      ইউআরএল স্লাগ (URL Slug)
-                    </label>
-                    <input
-                      type="text"
-                      value={slug}
-                      onChange={e => setSlug(e.target.value)}
-                      placeholder="যেমন: rububiyyah-sovereignty"
-                      className="w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#DCD7CD] text-xs font-mono text-[#141615]"
-                    />
-                  </div>
-                </div>
-
-                {/* 4. AUTHORSHIP & TAHQIQ */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 space-y-4">
-                  <h3 className="font-editorial text-base font-bold text-[#0B4F3B] pb-2 border-b border-[#F2EFE9]">
-                    লেখক ও তাহকীক পরিষদ
-                  </h3>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      গবেষক ও লেখক
-                    </label>
-                    <input
-                      type="text"
-                      value={author}
-                      onChange={e => setAuthor(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      তাহকীক ও সম্পাদনা পরিষদ
-                    </label>
-                    <input
-                      type="text"
-                      value={reviewer}
-                      onChange={e => setReviewer(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615]"
-                    />
-                  </div>
-                </div>
-
-                {/* 5. TAGS */}
-                <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 space-y-3">
-                  <h3 className="font-editorial text-base font-bold text-[#0B4F3B] pb-2 border-b border-[#F2EFE9]">
-                    বিষয়ভিত্তিক ট্যাগসমূহ
-                  </h3>
-                  <p className="text-[11px] text-[#6E7571]">
-                    কমা ( , ) দিয়ে আলাদা করে ট্যাগ লিখুন
-                  </p>
                   <input
                     type="text"
                     value={tagsInput}
-                    onChange={e => setTagsInput(e.target.value)}
-                    placeholder="তাওহীদ, রুবুবিয়্যাত, আকীদা, সৃষ্টিতত্ত্ব"
-                    className="w-full px-3 py-2 bg-[#FAF8F5] border border-[#DCD7CD] text-xs text-[#141615]"
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="তাওহীদ, আকীদা, ঈমান, আসমাউল হুসনা, সালাত"
+                    className="w-full p-2 text-xs bg-[#FAF8F5] dark:bg-[#1F2926] border border-[#DCD7CD] dark:border-[#3B4D47]"
                   />
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[#6E7571]">
+                    <span>জনপ্রিয় ট্যাগ সাজেশন:</span>
+                    {['তাওহীদ', 'কুরআন তাফসীর', 'সহীহ হাদিস', 'আকীদা', 'সীরাত', 'ফিকহী বিধান', 'সুন্নাহ'].map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onClick={() => {
+                          const current = tagsInput ? tagsInput.split(',').map((t) => t.trim()) : [];
+                          if (!current.includes(sug)) {
+                            setTagsInput([...current, sug].filter(Boolean).join(', '));
+                          }
+                        }}
+                        className="px-2 py-0.5 bg-[#FAF8F5] dark:bg-[#232F2B] border border-[#DCD7CD] hover:border-[#0B4F3B] hover:text-[#0B4F3B]"
+                      >
+                        + {sug}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* TAB 5: LIVE SEO & AUDIT SCORE */}
+            {activeTab === 'seo' && (
+              <LiveSeoScoreCard
+                title={title}
+                subtitle={subtitle}
+                summary={summary}
+                sectionSlug={currentSection?.slug || sectionId}
+                categorySlug={currentCategory?.slug || categoryId}
+                articleSlug={slug}
+                categoryName={currentCategory?.name || 'ইসলামিক জ্ঞানকোষ'}
+                citationArabic={citationArabic}
+                citationBengali={citationBengali}
+                keyTakeaways={keyTakeaways}
+                contentSections={contentSections}
+                references={references}
+                tags={tagsInput.split(',').map((t) => t.trim()).filter(Boolean)}
+                wordCount={stats.words}
+              />
+            )}
           </div>
         )}
 
-        {/* ======================================================== */}
-        {/* RIGHT COLUMN: LIVE EDITORIAL PREVIEW & SEO SIMULATOR    */}
-        {/* ======================================================== */}
-        {(viewMode === 'preview' || viewMode === 'split') && (
-          <div className="space-y-6">
-            {/* PREVIEW CONTROLS */}
-            <div className="bg-[#FFFFFF] border-2 border-[#141615] p-4 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-[#0B4F3B]" />
-                <span className="font-editorial text-sm font-bold text-[#141615]">
-                  লাইভ প্রিভিউ (ম্যাগাজিন ও রিডার ভিউ)
-                </span>
-              </div>
-
-              {/* THEME SWITCHER */}
-              <div className="flex items-center bg-[#FAF8F5] border border-[#141615] p-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setPreviewTheme('paper')}
-                  className={`px-2 py-0.5 font-bold ${
-                    previewTheme === 'paper' ? 'bg-[#0B4F3B] text-white' : 'text-[#141615]'
-                  }`}
-                >
-                  পেপার
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTheme('sepia')}
-                  className={`px-2 py-0.5 font-bold ${
-                    previewTheme === 'sepia' ? 'bg-[#B85D19] text-white' : 'text-[#141615]'
-                  }`}
-                >
-                  সেপিয়া
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTheme('dark')}
-                  className={`px-2 py-0.5 font-bold ${
-                    previewTheme === 'dark' ? 'bg-[#141615] text-white' : 'text-[#141615]'
-                  }`}
-                >
-                  ডার্ক
-                </button>
+        {/* RIGHT / PREVIEW COLUMN (Shown in split mode or full preview mode) */}
+        {(viewMode === 'split' || viewMode === 'preview') && (
+          <div className={viewMode === 'split' ? 'lg:col-span-6 space-y-4' : 'space-y-4'}>
+            {/* THEME PICKER FOR PREVIEW */}
+            <div className="bg-white dark:bg-[#1A2421] border-2 border-[#141615] p-3 flex items-center justify-between">
+              <span className="text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A] flex items-center gap-1.5">
+                <Eye className="w-4 h-4 text-[#B85D19]" />
+                <span>লাইভ রিডার মোড প্রিভিউ</span>
+              </span>
+              <div className="flex items-center gap-1">
+                {(['paper', 'sepia', 'dark'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setPreviewTheme(mode)}
+                    className={`px-2.5 py-1 text-xs font-bold transition-colors ${
+                      previewTheme === mode
+                        ? 'bg-[#0B4F3B] text-white'
+                        : 'bg-[#FAF8F5] dark:bg-[#232F2B] text-[#141615] dark:text-[#E8E6E1] border border-[#DCD7CD]'
+                    }`}
+                  >
+                    {mode === 'paper' ? 'পেপার' : mode === 'sepia' ? 'সেপিয়া' : 'ডার্ক'}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* SIMULATED READER CARD */}
+            {/* PREVIEW CONTAINER */}
             <div
-              className={`border-2 border-[#141615] p-6 sm:p-8 space-y-6 transition-colors ${
+              className={`p-6 sm:p-8 border-2 border-[#141615] shadow-md transition-colors ${
                 previewTheme === 'paper'
                   ? 'bg-[#FAF8F5] text-[#141615]'
                   : previewTheme === 'sepia'
-                  ? 'bg-[#F4ECD8] text-[#2C2416]'
-                  : 'bg-[#141615] text-[#FAF8F5]'
+                  ? 'bg-[#F3EAD8] text-[#1E1912]'
+                  : 'bg-[#101514] text-[#F2F0EA]'
               }`}
             >
-              {/* HEADER PILLS */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-                  <span className="px-2.5 py-0.5 bg-[#0B4F3B] text-white">
-                    {currentSection?.name || 'বিভাগ'}
-                  </span>
-                  <span className="px-2.5 py-0.5 bg-[#B85D19] text-white">
-                    {currentCategory?.name || 'ক্যাটেগরি'}
-                  </span>
-                  <span className="opacity-70 text-[11px]">
-                    • প্রকাশকাল: {publishedAt} • {readTime}
-                  </span>
+              <article className="space-y-6">
+                {/* Meta Header */}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
+                    <span className="px-2.5 py-0.5 bg-[#0B4F3B] text-white">
+                      {currentSection?.name || 'বিভাগ'}
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-[#B85D19] text-white">
+                      {currentCategory?.name || 'ক্যাটেগরি'}
+                    </span>
+                    <span className="text-xs text-[#6E7571]">
+                      • {publishedAt} • {readTime}
+                    </span>
+                  </div>
+
+                  <h1 className="font-editorial text-2xl sm:text-3xl font-extrabold leading-tight">
+                    {title || 'প্রবন্ধের পূর্ণাঙ্গ শিরোনাম'}
+                  </h1>
+
+                  {subtitle && (
+                    <p className="text-sm sm:text-base font-medium opacity-80">
+                      {subtitle}
+                    </p>
+                  )}
+
+                  <div className="p-3 bg-black/5 dark:bg-white/5 border border-black/10 flex items-center justify-between text-xs">
+                    <span>লেখক: <strong>{author}</strong></span>
+                    <span>তাহকীক: <strong>{reviewer}</strong></span>
+                  </div>
                 </div>
 
-                <h1 className="font-editorial text-2xl sm:text-3xl font-extrabold leading-tight">
-                  {title || 'প্রবন্ধের শিরোনাম এখানে প্রদর্শিত হবে'}
-                </h1>
-
-                {subtitle && (
-                  <p className="text-base sm:text-lg font-medium opacity-85">
-                    {subtitle}
-                  </p>
+                {/* Hero Citation */}
+                {citationBengali && (
+                  <div className="p-5 bg-black/5 dark:bg-white/5 border-l-4 border-[#0B4F3B] space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#0B4F3B] block">
+                      প্রচ্ছদ প্রধান উদ্ধৃতি ({citationRef || 'রেফারেন্স'})
+                    </span>
+                    {citationArabic && (
+                      <p dir="rtl" className="font-arabic text-2xl leading-loose font-bold text-right text-[#0B4F3B]">
+                        {citationArabic}
+                      </p>
+                    )}
+                    {citationTranslit && (
+                      <p className="text-xs italic opacity-70">
+                        উচ্চারণ: {citationTranslit}
+                      </p>
+                    )}
+                    <p className="text-base font-bold">
+                      অনুবাদ: “{citationBengali}”
+                    </p>
+                  </div>
                 )}
 
-                {/* BYLINE */}
-                <div className="p-3 bg-black/5 dark:bg-white/5 border border-current/15 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-[#0B4F3B] dark:text-[#4CC39A]" />
-                    <span><strong>গবেষণা ও রচনা:</strong> {author}</span>
+                {/* Key Takeaways */}
+                {keyTakeaways.some((t) => t.trim().length > 0) && (
+                  <div className="p-5 bg-[#B85D19]/10 border-l-4 border-[#B85D19] space-y-2">
+                    <h3 className="font-editorial text-sm font-bold text-[#B85D19] flex items-center gap-1.5">
+                      <Award className="w-4 h-4" />
+                      <span>প্রবন্ধের মূল শিক্ষা ও সারসংক্ষেপ</span>
+                    </h3>
+                    <ul className="space-y-1 text-xs sm:text-sm list-disc pl-5">
+                      {keyTakeaways.map((item, idx) => (
+                        item.trim() ? <li key={idx}>{item}</li> : null
+                      ))}
+                    </ul>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#B85D19]" />
-                    <span><strong>তাহকীক ও সম্পাদনা:</strong> {reviewer}</span>
-                  </div>
-                </div>
-              </div>
+                )}
 
-              {/* PRIMARY CITATION BOX */}
-              {citationArabic && (
-                <div className="p-6 bg-[#0B4F3B]/10 border-2 border-[#0B4F3B] space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
-                    <span>মূল দলিল ও উদ্ধৃতি</span>
-                    <span className="font-mono">{citationRef}</span>
-                  </div>
-                  <p dir="rtl" className="font-serif text-2xl sm:text-3xl leading-loose font-bold text-[#0B4F3B] dark:text-[#4CC39A] text-right">
-                    {citationArabic}
-                  </p>
-                  {citationTranslit && (
-                    <p className="text-xs sm:text-sm italic opacity-75">
-                      উচ্চারণ: {citationTranslit}
-                    </p>
-                  )}
-                  {citationBengali && (
-                    <p className="text-base font-bold">
-                      অনুবাদ: &ldquo;{citationBengali}&rdquo;
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* KEY TAKEAWAYS */}
-              {keyTakeaways.filter(Boolean).length > 0 && (
-                <div className="p-5 bg-[#B85D19]/10 border-l-4 border-[#B85D19] space-y-2">
-                  <h3 className="font-editorial text-base font-extrabold text-[#B85D19] flex items-center gap-2">
-                    <Award className="w-4 h-4" />
-                    <span>প্রবন্ধের মূল শিক্ষা ও সারসংক্ষেপ</span>
-                  </h3>
-                  <ul className="space-y-1.5 text-sm list-disc pl-5">
-                    {keyTakeaways.filter(Boolean).map((item, idx) => (
-                      <li key={idx} className="font-medium">
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* CONTENT SECTIONS WITH PARSED BLOCKS */}
-              <div className="space-y-8 pt-2">
-                {contentSections
-                  .filter(s => s.heading.trim() || s.body.trim())
-                  .map((sec, idx) => (
+                {/* Content Sections */}
+                <div className="space-y-6 pt-2">
+                  {contentSections.map((sec, idx) => (
                     <div key={idx} className="space-y-3">
-                      <h2 className="font-editorial text-xl sm:text-2xl font-bold text-[#0B4F3B] dark:text-[#4CC39A] border-b pb-1.5 border-current/15">
-                        {sec.heading}
-                      </h2>
-                      <div className="text-sm sm:text-base">
+                      {sec.heading && (
+                        <h2 className="font-editorial text-lg sm:text-xl font-bold border-b pb-2 border-black/10">
+                          {sec.heading}
+                        </h2>
+                      )}
+                      <div className="leading-relaxed">
                         {renderParsedBody(sec.body)}
                       </div>
                     </div>
                   ))}
-              </div>
-
-              {/* REFERENCES */}
-              {references.filter(Boolean).length > 0 && (
-                <div className="p-4 bg-black/5 dark:bg-white/5 border border-current/20 space-y-2">
-                  <h4 className="font-editorial text-xs font-bold uppercase tracking-wider text-[#0B4F3B] dark:text-[#4CC39A]">
-                    তথ্যসূত্র ও প্রামাণ্য গ্রন্থপঞ্জি (References)
-                  </h4>
-                  <ol className="list-decimal pl-5 text-xs space-y-1">
-                    {references.filter(Boolean).map((ref, idx) => (
-                      <li key={idx}>{ref}</li>
-                    ))}
-                  </ol>
                 </div>
-              )}
-            </div>
 
-            {/* SEO & SOCIAL SHARE SIMULATOR */}
-            <div className="bg-[#FFFFFF] border-2 border-[#141615] p-5 space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-[#F2EFE9]">
-                <Globe className="w-4 h-4 text-[#0B4F3B]" />
-                <h3 className="font-editorial text-base font-bold text-[#141615]">
-                  গুগল সার্চ ও সোশ্যাল মিডিয়া শেয়ার সিমুলেটর (SEO Simulator)
-                </h3>
-              </div>
-
-              {/* GOOGLE SEARCH SNIPPET */}
-              <div className="p-4 bg-[#FAF8F5] border border-[#DCD7CD] space-y-1.5">
-                <span className="text-[10px] font-bold uppercase text-[#6E7571] tracking-wider block">
-                  Google Search Snippet Preview
-                </span>
-                <div className="text-xs font-mono text-[#006621] truncate">
-                  https://islam.org/{currentSection?.slug || 'section'}/{currentCategory?.slug || 'category'}/{slug || 'article-slug'}
-                </div>
-                <div className="text-base text-[#1a0dab] hover:underline font-medium cursor-pointer truncate">
-                  {title || 'প্রবন্ধের শিরোনাম'} | {currentCategory?.name || 'ক্যাটেগরি'} - ইসলাম
-                </div>
-                <p className="text-xs text-[#545454] line-clamp-2 leading-relaxed">
-                  {subtitle || summary || 'প্রবন্ধের সংক্ষিপ্ত বিবরণ গুগল অনুসন্ধানে এখানে প্রদর্শিত হবে...'}
-                </p>
-              </div>
-
-              {/* SOCIAL SHARE CARD */}
-              <div className="p-4 bg-[#FAF8F5] border border-[#DCD7CD] space-y-2">
-                <span className="text-[10px] font-bold uppercase text-[#6E7571] tracking-wider block">
-                  Facebook & WhatsApp OpenGraph Card Preview
-                </span>
-                <div className="border border-[#141615] bg-[#FFFFFF] overflow-hidden">
-                  <div className="h-28 bg-[#0B4F3B] flex items-center justify-center p-4 text-center">
-                    <div>
-                      <span className="text-[10px] font-mono text-[#E8A86B] uppercase tracking-wider font-bold">
-                        ইসলামিক শাস্ত্রীয় গবেষণা পোর্টাল
-                      </span>
-                      <h4 className="font-editorial text-white text-base font-bold line-clamp-2 mt-1">
-                        {title || 'প্রবন্ধের শিরোনাম'}
-                      </h4>
-                    </div>
+                {/* References */}
+                {references.some((r) => r.trim().length > 0) && (
+                  <div className="p-5 bg-black/5 dark:bg-white/5 border border-black/15 space-y-2">
+                    <h4 className="font-editorial text-xs font-bold uppercase tracking-wider text-[#0B4F3B]">
+                      তথ্যসূত্র ও প্রামাণ্য গ্রন্থপঞ্জি (References)
+                    </h4>
+                    <ol className="list-decimal pl-5 text-xs space-y-1">
+                      {references.map((ref, idx) => (
+                        ref.trim() ? <li key={idx}>{ref}</li> : null
+                      ))}
+                    </ol>
                   </div>
-                  <div className="p-3 space-y-1">
-                    <span className="text-[10px] font-mono uppercase text-[#6E7571]">
-                      ISLAM.ORG • {currentCategory?.name}
-                    </span>
-                    <h5 className="font-bold text-xs text-[#141615] line-clamp-1">
-                      {title}
-                    </h5>
-                    <p className="text-[11px] text-[#4A4F4C] line-clamp-2">
-                      {subtitle || summary}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                )}
+              </article>
             </div>
           </div>
         )}
       </div>
 
-      {/* ======================================================== */}
-      {/* ISLAMIC BLOCK BUILDER MODAL                              */}
-      {/* ======================================================== */}
-      {blockModalOpen && (
-        <div className="fixed inset-0 z-50 bg-[#141615]/75 flex items-center justify-center p-4">
-          <div className="bg-[#FFFFFF] border-2 border-[#141615] w-full max-w-lg p-6 space-y-4 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b-2 border-[#141615]">
-              <div className="flex items-center gap-2">
-                {blockType === 'quran' && <BookOpen className="w-5 h-5 text-[#0B4F3B]" />}
-                {blockType === 'hadith' && <Bookmark className="w-5 h-5 text-[#B85D19]" />}
-                {blockType === 'fiqh' && <ShieldCheck className="w-5 h-5 text-[#141615]" />}
-                <h3 className="font-editorial text-lg font-extrabold text-[#141615]">
-                  {blockType === 'quran'
-                    ? 'কুরআন আয়াত ব্লক ইনসার্টার'
-                    : blockType === 'hadith'
-                    ? 'হাদিস উদ্ধৃতি ব্লক ইনসার্টার'
-                    : 'ফিকহী মাসআলা কলআউট'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setBlockModalOpen(false)}
-                className="p-1 hover:bg-[#FAF8F5] text-[#6E7571] hover:text-[#141615]"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* ISLAMIC BLOCK BUILDER MODAL */}
+      <IslamicBlockModal
+        isOpen={blockModalOpen}
+        onClose={() => setBlockModalOpen(false)}
+        onInsertMarkup={(markup) => {
+          const currentBody = contentSections[targetSectionIndex]?.body || '';
+          handleSectionChangeContent(targetSectionIndex, 'body', currentBody + markup);
+        }}
+      />
 
-            <div className="space-y-3.5 text-xs sm:text-sm">
-              {blockType === 'quran' && (
-                <>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      আরবী আয়াত পাঠ
-                    </label>
-                    <textarea
-                      dir="rtl"
-                      rows={2}
-                      value={blockArabic}
-                      onChange={e => setBlockArabic(e.target.value)}
-                      placeholder="اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ..."
-                      className="w-full p-2.5 bg-[#FAF8F5] border border-[#141615] font-serif text-lg text-[#0B4F3B] text-right"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      উচ্চারণ / লিপ্যন্তর (ঐচ্ছিক)
-                    </label>
-                    <input
-                      type="text"
-                      value={blockTranslit}
-                      onChange={e => setBlockTranslit(e.target.value)}
-                      placeholder="আল্লাহু লা ইলাহা ইল্লা হুয়াল হাইয়্যুল কাইয়্যূম..."
-                      className="w-full p-2 bg-[#FAF8F5] border border-[#DCD7CD]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      বাংলা অনুবাদ ও তাৎপর্য *
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={blockBengali}
-                      onChange={e => setBlockBengali(e.target.value)}
-                      placeholder="আল্লাহ, তিনি ছাড়া কোনো সত্য উপাস্য নেই..."
-                      className="w-full p-2 bg-[#FAF8F5] border border-[#141615]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      সূরা ও আয়াত রেফারেন্স *
-                    </label>
-                    <input
-                      type="text"
-                      value={blockRef}
-                      onChange={e => setBlockRef(e.target.value)}
-                      placeholder="যেমন: সূরা আল-বাক্বারাহ: ২৫৫"
-                      className="w-full p-2 bg-[#FAF8F5] border border-[#141615]"
-                      required
-                    />
-                  </div>
-                </>
-              )}
+      {/* FRAMEWORK GENERATOR MODAL */}
+      <FrameworkGeneratorModal
+        isOpen={frameworkModalOpen}
+        onClose={() => setFrameworkModalOpen(false)}
+        onApplyFramework={handleApplyFramework}
+      />
 
-              {blockType === 'hadith' && (
-                <>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      আরবী মতন পাঠ
-                    </label>
-                    <textarea
-                      dir="rtl"
-                      rows={2}
-                      value={blockArabic}
-                      onChange={e => setBlockArabic(e.target.value)}
-                      placeholder="إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ..."
-                      className="w-full p-2.5 bg-[#FAF8F5] border border-[#141615] font-serif text-lg text-right"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-bold text-[#141615] mb-1">
-                        বর্ণনাকারী সাহাবী (রাবী)
-                      </label>
-                      <input
-                        type="text"
-                        value={blockNarrator}
-                        onChange={e => setBlockNarrator(e.target.value)}
-                        placeholder="হযরত উমর ইবনুল খাত্তাব (রা.)"
-                        className="w-full p-2 bg-[#FAF8F5] border border-[#DCD7CD]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-[#141615] mb-1">
-                        তাহকীক ও মান
-                      </label>
-                      <select
-                        value={blockGrade}
-                        onChange={e => setBlockGrade(e.target.value)}
-                        className="w-full p-2 bg-[#FAF8F5] border border-[#141615] font-bold"
-                      >
-                        <option value="মুত্তাফাকুন আলাইহ">মুত্তাফাকুন আলাইহ</option>
-                        <option value="সহীহ">সহীহ</option>
-                        <option value="হাসান">হাসান</option>
-                        <option value="মুতাওয়াতির">মুতাওয়াতির</option>
-                        <option value="সহীহ লি গাইরিহী">সহীহ লি গাইরিহী</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      বাংলা অনুবাদ *
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={blockBengali}
-                      onChange={e => setBlockBengali(e.target.value)}
-                      placeholder="নিশ্চয়ই সমস্ত আমল নিয়তের উপর নির্ভরশীল..."
-                      className="w-full p-2 bg-[#FAF8F5] border border-[#141615]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      হাদিস গ্রন্থ ও নম্বর *
-                    </label>
-                    <input
-                      type="text"
-                      value={blockRef}
-                      onChange={e => setBlockRef(e.target.value)}
-                      placeholder="যেমন: সহীহুল বুখারী, হাদিস নং ১"
-                      className="w-full p-2 bg-[#FAF8F5] border border-[#141615]"
-                      required
-                    />
-                  </div>
-                </>
-              )}
-
-              {blockType === 'fiqh' && (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-bold text-[#141615] mb-1">
-                        মাসআলার শিরোনাম
-                      </label>
-                      <input
-                        type="text"
-                        value={blockRef}
-                        onChange={e => setBlockRef(e.target.value)}
-                        placeholder="যেমন: সালাতের রুকনসমূহ"
-                        className="w-full p-2 bg-[#FAF8F5] border border-[#141615]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-[#141615] mb-1">
-                        শরীয়তের হুকুম / বিধান
-                      </label>
-                      <select
-                        value={blockRuling}
-                        onChange={e => setBlockRuling(e.target.value)}
-                        className="w-full p-2 bg-[#FAF8F5] border border-[#141615] font-bold"
-                      >
-                        <option value="ফরজ">ফরজ</option>
-                        <option value="ওয়াজিব">ওয়াজিব</option>
-                        <option value="সুন্নাতে মুয়াক্কাদাহ">সুন্নাতে মুয়াক্কাদাহ</option>
-                        <option value="মুস্তাহাব">মুস্তাহাব</option>
-                        <option value="মাকরূহে তানযীহী">মাকরূহে তানযীহী</option>
-                        <option value="মাকরূহে তাহরীমী">মাকরূহে তাহরীমী</option>
-                        <option value="হারাম">হারাম</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-[#141615] mb-1">
-                      মাসআলার বিশ্লেষণ ও দলীল *
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={blockBengali}
-                      onChange={e => setBlockBengali(e.target.value)}
-                      placeholder="তাকবীরে তাহরীমা, কিয়াম, কিরাত, রুকূ ও সিজদা সালাতের মূল রুকন..."
-                      className="w-full p-2 bg-[#FAF8F5] border border-[#141615]"
-                      required
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="pt-3 border-t-2 border-[#141615] flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setBlockModalOpen(false)}
-                className="px-4 py-2 border border-[#141615] text-xs font-bold hover:bg-[#FAF8F5]"
-              >
-                বাতিল
-              </button>
-              <button
-                type="button"
-                onClick={handleInsertBlock}
-                className="px-4 py-2 bg-[#0B4F3B] hover:bg-[#083B2C] text-white text-xs font-bold border border-[#141615]"
-              >
-                পরিচ্ছেদে ইনসার্ট করুন
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* REVISION HISTORY & EXPORT MODAL */}
+      <RevisionHistoryModal
+        isOpen={revisionModalOpen}
+        onClose={() => setRevisionModalOpen(false)}
+        articleId={id || initialArticle?.id || 'new'}
+        currentArticleData={{
+          id,
+          slug,
+          title,
+          subtitle,
+          section_id: sectionId,
+          category_id: categoryId,
+          author,
+          reviewer,
+          published_at: publishedAt,
+          read_time: readTime,
+          is_lead: isLead,
+          status,
+          summary,
+          citation: {
+            arabic: citationArabic,
+            transliteration: citationTranslit,
+            bengali: citationBengali,
+            reference: citationRef
+          },
+          key_takeaways: keyTakeaways,
+          content_sections: contentSections,
+          references,
+          tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
+          bodyLength: fullArticleText.length
+        }}
+        onRestoreSnapshot={handleRestoreSnapshot}
+      />
     </form>
   );
 }

@@ -1294,7 +1294,7 @@ export default function IslamPortal({
                         {sec.heading}
                       </h2>
                       <div className={`${themeClasses.textPrimary} leading-relaxed space-y-3`}>
-                        {sec.body.split(/(\[(?:কুরআন|হাদিস|মাসআলা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা)\])/g).map((part, pIdx) => {
+                        {sec.body.split(/(\[(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা):[\s\S]*?\[\/(?:কুরআন|হাদিস|মাসআলা|উক্তি|সতর্কতা)\])/g).map((part, pIdx) => {
                           const quranMatch = part.match(/\[কুরআন:\s*([^\]]*)\]([\s\S]*?)\[\/কুরআন\]/);
                           if (quranMatch) {
                             const ref = quranMatch[1];
@@ -1373,6 +1373,42 @@ export default function IslamPortal({
                                   <span className="font-mono bg-[#B85D19] text-white px-2 py-0.5">{header}</span>
                                 </div>
                                 <p className="text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-line">
+                                  {content.trim()}
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          const quoteMatch = part.match(/\[উক্তি:\s*([^\]]*)\]([\s\S]*?)\[\/উক্তি\]/);
+                          if (quoteMatch) {
+                            const header = quoteMatch[1];
+                            const content = quoteMatch[2];
+
+                            return (
+                              <div key={pIdx} className={`my-4 p-4 ${themeClasses.bgAccentTint} border-l-4 border-[#0B4F3B] space-y-1.5`}>
+                                <div className="flex items-center justify-between text-xs font-bold text-[#0B4F3B] dark:text-[#4CC39A]">
+                                  <span>সালাফে সালেহীনের প্রজ্ঞাময় উক্তি</span>
+                                  <span className="font-mono">{header}</span>
+                                </div>
+                                <p className="text-sm font-serif italic leading-relaxed whitespace-pre-line">
+                                  “{content.trim()}”
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          const warningMatch = part.match(/\[সতর্কতা:\s*([^\]]*)\]([\s\S]*?)\[\/সতর্কতা\]/);
+                          if (warningMatch) {
+                            const header = warningMatch[1];
+                            const content = warningMatch[2];
+
+                            return (
+                              <div key={pIdx} className="my-4 p-4 bg-[#FBEAE8] dark:bg-[#331D1A] border-l-4 border-[#DC2626] space-y-1.5">
+                                <div className="flex items-center justify-between text-xs font-bold text-[#DC2626]">
+                                  <span>সতর্কতামূলক বিশ্লেষণ ও তাহকীক</span>
+                                  <span className="font-mono">{header}</span>
+                                </div>
+                                <p className="text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-line text-[#141615] dark:text-[#E8E6E1]">
                                   {content.trim()}
                                 </p>
                               </div>
